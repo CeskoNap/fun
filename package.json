@@ -1,0 +1,23 @@
+{
+  "name": "fun-gaming-platform",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "contracts",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter frontend dev\" \"pnpm --filter backend start:dev\"",
+    "build": "pnpm --filter frontend build && pnpm --filter backend build",
+    "lint": "pnpm --filter frontend lint && pnpm --filter backend lint",
+    "test": "pnpm --filter contracts test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "prettier": "^3.2.5"
+  }
+}
+

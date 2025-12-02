@@ -1,0 +1,708 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum OAuthProvider {
+  GOOGLE
+  APPLE
+}
+
+model User {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // OAuth
+  oauthProvider OAuthProvider
+  oauthId       String       @unique // Provider's user ID
+  email         String?      @unique
+  username      String       @unique
+  displayName   String?
+  avatarUrl     String?
+
+  // Profile
+  language      String  @default("en") // 'en' or 'it'
+  timezone      String? // User's timezone (for display only, server time is authoritative)
+
+  // Roles & Status
+  role          UserRole @default(USER)
+  isActive      Boolean  @default(true)
+  isBanned      Boolean  @default(false)
+  bannedUntil   DateTime?
+  banReason     String?
+
+  // Legal
+  tosAcceptedAt    DateTime?
+  tosVersion       String?
+  privacyAcceptedAt DateTime?
+  privacyVersion   String?
+  ageConfirmed     Boolean @default(false)
+  ageConfirmedAt   DateTime?
+
+  // Responsible Gaming (structure for future)
+  betLimitDaily    Decimal? @db.Decimal(20, 8)
+  betLimitWeekly   Decimal? @db.Decimal(20, 8)
+  selfExclusionUntil DateTime?
+
+  // Relations
+  balance          UserBalance?
+  userLevel        UserLevel?
+  sessions         Session[]
+  transactions     Transaction[]
+  bets             Bet[]
+  dailyRewards     DailyReward[]
+  hourlyFaucets    HourlyFaucet[]
+  adRewards        AdReward[]
+  quizAttempts     QuizAttempt[]
+  tokenTransfersSent     TokenTransfer[] @relation("TransferFrom")
+  tokenTransfersReceived TokenTransfer[] @relation("TransferTo")
+  levelUpRewards   LevelUpReward[]
+  wheelSpins       WheelSpin[]
+  userMissions     UserMission[]
+  achievements     UserAchievement[]
+  raceParticipants RaceParticipant[]
+  adminActions     AdminActionLog[]
+  loginLogs        LoginLog[]
+  xpLogs           XpLog[]
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+model LoginLog {
+  id        String   @id @default(uuid())
+  userId    String
+  ipAddress String?
+  userAgent String?
+  success   Boolean
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([ipAddress])
+  @@index([createdAt])
+}
+
+// ============================================
+// BALANCE & TRANSACTIONS
+// ============================================
+
+model UserBalance {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  balance       Decimal  @default(0) @db.Decimal(20, 8) // 8 decimals like token
+  lockedBalance Decimal  @default(0) @db.Decimal(20, 8) // For active bets
+  version       Int      @default(0) // Optimistic locking
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum TransactionType {
+  INITIAL_BONUS
+  BET
+  WIN
+  LOSS
+  DAILY_REWARD
+  HOURLY_FAUCET
+  AD_REWARD
+  QUIZ_REWARD
+  LEVEL_UP_REWARD
+  TOKEN_TRANSFER_SENT
+  TOKEN_TRANSFER_RECEIVED
+  RACE_ENTRY
+  RACE_PRIZE
+  MISSION_REWARD
+  WHEEL_REWARD
+  ADMIN_ADJUSTMENT
+  REFUND
+}
+
+model Transaction {
+  id           String          @id @default(uuid())
+  userId       String
+  type         TransactionType
+  amount       Decimal         @db.Decimal(20, 8) // Positive for credits, negative for debits
+  balanceBefore Decimal        @db.Decimal(20, 8)
+  balanceAfter  Decimal        @db.Decimal(20, 8)
+  metadata     Json?           // Additional data (game ID, bet ID, etc.)
+  createdAt    DateTime        @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ============================================
+// XP & LEVELS
+// ============================================
+
+model UserLevel {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  level         Int      @default(1)
+  xp            Decimal  @default(0) @db.Decimal(20, 2)
+  xpToNextLevel Decimal? @db.Decimal(20, 2)
+  totalXpEarned Decimal  @default(0) @db.Decimal(20, 2)
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([level])
+}
+
+model XpLog {
+  id        String   @id @default(uuid())
+  userId    String
+  xpEarned  Decimal  @db.Decimal(20, 2)
+  source    String   // 'bet', 'mission', 'wheel', etc.
+  sourceId  String?  // ID of the source (bet ID, mission ID, etc.)
+  levelBefore Int
+  levelAfter  Int
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model LevelUpReward {
+  id        String   @id @default(uuid())
+  userId    String
+  level     Int
+  amount    Decimal  @db.Decimal(20, 8)
+  claimedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([level])
+}
+
+// ============================================
+// REWARDS
+// ============================================
+
+model DailyReward {
+  id        String   @id @default(uuid())
+  userId    String
+  day       Date     // Date based on server time (reset at 02:00)
+  level     Int       // User's level at claim time
+  amount    Decimal   @db.Decimal(20, 8)
+  streak    Int?      // Current streak days
+  ipAddress String?
+  userAgent String?
+  claimedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day])
+  @@index([userId])
+  @@index([day])
+}
+
+model HourlyFaucet {
+  id        String   @id @default(uuid())
+  userId    String
+  hour      DateTime // Hour window (server time)
+  day       Date     // Day based on server time (reset at 02:00)
+  amount    Decimal   @db.Decimal(20, 8)
+  ipAddress String?
+  userAgent String?
+  claimedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([hour])
+  @@index([day])
+}
+
+model AdReward {
+  id        String   @id @default(uuid())
+  userId    String
+  hour      DateTime // Hour window (server time)
+  day       Date     // Logical day based on server time (reset at 02:00)
+  provider  String?  // Ad provider (AdMob, etc.)
+  amount    Decimal   @db.Decimal(20, 8)
+  ipAddress String?
+  userAgent String?
+  rewardedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([hour])
+  @@index([userId, day])
+}
+
+// ============================================
+// QUIZ
+// ============================================
+
+model QuizQuestion {
+  id          String   @id @default(uuid())
+  category    String   // 'crypto', 'blockchain', 'defi', 'nft', 'security', 'web3'
+  difficulty  String?  // 'easy', 'medium', 'hard'
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  translations QuizQuestionTranslation[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model QuizQuestionTranslation {
+  id              String   @id @default(uuid())
+  questionId      String
+  language        String   // 'en', 'it'
+  questionText    String
+  options         Json     // Array of 4 options
+  correctAnswerIndex Int   // 0-3
+  explanation     String?  // Optional explanation
+
+  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, language])
+  @@index([questionId])
+  @@index([language])
+}
+
+model QuizAttempt {
+  id              String   @id @default(uuid())
+  userId          String
+  day             Date     // Day based on server time (reset at 02:00)
+  questionIds     Json     // Array of 3 question IDs
+  answers         Json     // Array of answer indices [0, 1, 2]
+  correctCount    Int
+  amount          Decimal   @db.Decimal(20, 8)
+  ipAddress       String?
+  userAgent       String?
+  completedAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day])
+  @@index([userId])
+  @@index([day])
+}
+
+// ============================================
+// TOKEN TRANSFERS
+// ============================================
+
+model TokenTransfer {
+  id        String   @id @default(uuid())
+  fromUserId String
+  toUserId   String
+  amount    Decimal   @db.Decimal(20, 8)
+  day       Date?     // For daily limits tracking
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  fromUser User @relation("TransferFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User @relation("TransferTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([day])
+}
+
+// ============================================
+// GAMES
+// ============================================
+
+enum GameType {
+  MINES
+  PLINKO
+  CRASH
+  DICE
+  // Future games...
+}
+
+enum BetStatus {
+  PENDING
+  WON
+  LOST
+  CANCELLED
+  REFUNDED
+}
+
+model Game {
+  id          String   @id @default(uuid())
+  type        GameType @unique
+  name        String
+  isActive    Boolean  @default(true)
+  houseEdge   Decimal  @db.Decimal(5, 4) // e.g., 0.0150 for 1.5%
+  minBet      Decimal  @db.Decimal(20, 8)
+  maxBet      Decimal? @db.Decimal(20, 8)
+  config      Json?    // Game-specific configuration
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  bets Bet[]
+
+  @@index([type])
+  @@index([isActive])
+}
+
+model Bet {
+  id            String    @id @default(uuid())
+  userId        String
+  gameId        String
+  amount        Decimal   @db.Decimal(20, 8)
+  payout        Decimal?  @db.Decimal(20, 8) // Null if lost
+  multiplier    Decimal?  @db.Decimal(10, 4) // Game result (e.g., 2.5x for Crash)
+  status        BetStatus @default(PENDING)
+  
+  // Provably Fair
+  serverSeed    String
+  clientSeed    String
+  nonce         Int
+  resultHash    String?   // Hash of the result for verification
+
+  // Game-specific data
+  gameData      Json?     // Mines: revealed tiles, Plinko: path, etc.
+
+  // XP earned from this bet
+  xpEarned      Decimal?  @db.Decimal(20, 2)
+
+  createdAt     DateTime  @default(now())
+  resolvedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game Game @relation(fields: [gameId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([gameId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================
+// WHEEL
+// ============================================
+
+model WheelConfig {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  segments    Json     // Array of segments with reward type and amount
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model WheelSpin {
+  id        String   @id @default(uuid())
+  userId    String
+  day       Date?    // If daily limit applies
+  segment   Int      // Which segment was hit (0-based index)
+  rewardType String  // 'token', 'xp', 'none'
+  amount    Decimal? @db.Decimal(20, 8) // If token reward
+  xpAmount  Decimal? @db.Decimal(20, 2)  // If XP reward
+  spunAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([day])
+}
+
+// ============================================
+// MISSIONS
+// ============================================
+
+enum MissionType {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum MissionStatus {
+  ACTIVE
+  COMPLETED
+  REWARDED
+  EXPIRED
+}
+
+model Mission {
+  id          String      @id @default(uuid())
+  type        MissionType
+  name        String
+  description String
+  objective   Json        // Mission objective (e.g., { type: 'bet_count', target: 10, gameType: 'MINES' })
+  reward      Json        // { type: 'token'|'xp', amount: 100 }
+  isActive    Boolean     @default(true)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  userMissions UserMission[]
+
+  @@index([type])
+  @@index([isActive])
+}
+
+model UserMission {
+  id          String         @id @default(uuid())
+  userId      String
+  missionId   String
+  progress    Json           // Current progress (e.g., { betCount: 5, target: 10 })
+  status      MissionStatus  @default(ACTIVE)
+  completedAt DateTime?
+  rewardedAt  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, missionId])
+  @@index([userId])
+  @@index([missionId])
+  @@index([status])
+}
+
+// ============================================
+// ACHIEVEMENTS
+// ============================================
+
+model Achievement {
+  id          String   @id @default(uuid())
+  code        String   @unique // e.g., 'level_50', 'bet_1000'
+  name        String
+  description String
+  icon        String?  // Icon identifier
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  userAchievements UserAchievement[]
+
+  @@index([code])
+}
+
+model UserAchievement {
+  id            String   @id @default(uuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@index([achievementId])
+}
+
+// ============================================
+// RACES
+// ============================================
+
+enum RaceStatus {
+  UPCOMING
+  ACTIVE
+  ENDED
+  CANCELLED
+}
+
+model Race {
+  id          String     @id @default(uuid())
+  name        String
+  description String?
+  gameType    GameType?  // If specific to a game, null = all games
+  status      RaceStatus @default(UPCOMING)
+  entryFee    Decimal    @db.Decimal(20, 8) // 100 FUN
+  startsAt    DateTime
+  endsAt      DateTime
+  prizePool   Decimal    @default(0) @db.Decimal(20, 8)
+  config      Json       // Prize distribution config
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  participants RaceParticipant[]
+
+  @@index([status])
+  @@index([startsAt])
+  @@index([endsAt])
+}
+
+model RaceParticipant {
+  id          String   @id @default(uuid())
+  raceId      String
+  userId      String
+  volume      Decimal  @default(0) @db.Decimal(20, 8) // Total bet volume in race
+  xpEarned    Decimal  @default(0) @db.Decimal(20, 2)
+  rank        Int?     // Final rank
+  prize       Decimal? @db.Decimal(20, 8)
+  joinedAt    DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  race Race @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([raceId, userId])
+  @@index([raceId])
+  @@index([userId])
+  @@index([rank])
+}
+
+// ============================================
+// CONFIGURATION
+// ============================================
+
+model Config {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json     // Can be string, number, object, array
+  category  String?  // 'xp', 'reward', 'game', 'system', etc.
+  updatedAt DateTime @updatedAt
+  updatedBy String?  // Admin user ID
+
+  @@index([key])
+  @@index([category])
+}
+
+model LevelConfig {
+  id          String   @id @default(uuid())
+  level       Int      @unique
+  xpRequired  Decimal  @db.Decimal(20, 2)
+  reward      Decimal? @db.Decimal(20, 8) // Level-up reward
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([level])
+}
+
+model RewardConfig {
+  id        String   @id @default(uuid())
+  type      String   @unique // 'daily', 'faucet', 'quiz', 'streak'
+  config    Json     // Type-specific configuration
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+}
+
+model AdRewardConfig {
+  id              String   @id @default(uuid())
+  rewardAmount    Decimal  @db.Decimal(20, 8) // 50 FUN per ad
+  adsPerHourLimit Int      @default(5) // Max 5 ads per hour
+  dailyAdsCap     Int      @default(30) // Max ads per day (reset 02:00)
+  isActive        Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+model RaceConfig {
+  id                String   @id @default(uuid())
+  name              String   @unique // e.g., 'default', 'weekly', 'monthly'
+  entryFee          Decimal  @db.Decimal(20, 8) // 100 FUN default
+  prizeDistribution Json     // Prize distribution tiers
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Example prizeDistribution structure:
+  // {
+  //   "tiers": [
+  //     { "rankStart": 1, "rankEnd": 1, "percentage": 20 },
+  //     { "rankStart": 2, "rankEnd": 2, "percentage": 15 },
+  //     { "rankStart": 3, "rankEnd": 3, "percentage": 10 },
+  //     { "rankStart": 4, "rankEnd": 50, "percentage": 35 },
+  //     { "rankStart": 51, "rankEnd": 100, "percentage": 20 }
+  //   ],
+  //   "topPercentageWinners": 25 // Top 25% of participants win
+  // }
+
+  @@index([name])
+  @@index([isActive])
+}
+
+model XpConfig {
+  id                 String   @id @default(uuid())
+  baseXpRate         Decimal  @db.Decimal(10, 4) @default(0.01) // 1 XP per 100 FUN
+  globalXpMultiplier Decimal  @db.Decimal(10, 4) @default(1.0) // Global multiplier for all XP
+  gameMultipliers    Json     // { "MINES": 1.0, "PLINKO": 1.0, ... }
+  updatedAt          DateTime @updatedAt
+  updatedBy          String?  // Admin user ID
+
+  @@index([id])
+}
+
+// ============================================
+// FEATURE FLAGS
+// ============================================
+
+model FeatureFlag {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  enabled   Boolean  @default(true)
+  config    Json?    // Optional configuration
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+}
+
+// ============================================
+// ADMIN
+// ============================================
+
+model AdminActionLog {
+  id        String   @id @default(uuid())
+  adminId   String
+  targetUserId String? // If action targets a user
+  action    String   // 'ban_user', 'unban_user', 'adjust_balance', etc.
+  details   Json?    // Action-specific details
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  admin User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([targetUserId])
+  @@index([createdAt])
+}
+
