@@ -31,9 +31,10 @@ model User {
   updatedAt DateTime @updatedAt
 
   // OAuth
-  oauthProvider OAuthProvider
-  oauthId       String       @unique // Provider's user ID
+  oauthProvider OAuthProvider?
+  oauthId       String?      @unique // Provider's user ID (null for email/password users)
   email         String?      @unique
+  passwordHash  String?      // Hashed password for email/password auth
   username      String       @unique
   displayName   String?
   avatarUrl     String?
@@ -224,7 +225,7 @@ model LevelUpReward {
 model DailyReward {
   id        String   @id @default(uuid())
   userId    String
-  day       Date     // Date based on server time (reset at 02:00)
+  day       DateTime // Date based on server time (reset at 02:00)
   level     Int       // User's level at claim time
   amount    Decimal   @db.Decimal(20, 8)
   streak    Int?      // Current streak days
@@ -243,7 +244,7 @@ model HourlyFaucet {
   id        String   @id @default(uuid())
   userId    String
   hour      DateTime // Hour window (server time)
-  day       Date     // Day based on server time (reset at 02:00)
+  day       DateTime // Day based on server time (reset at 02:00)
   amount    Decimal   @db.Decimal(20, 8)
   ipAddress String?
   userAgent String?
@@ -260,7 +261,7 @@ model AdReward {
   id        String   @id @default(uuid())
   userId    String
   hour      DateTime // Hour window (server time)
-  day       Date     // Logical day based on server time (reset at 02:00)
+  day       DateTime // Logical day based on server time (reset at 02:00)
   provider  String?  // Ad provider (AdMob, etc.)
   amount    Decimal   @db.Decimal(20, 8)
   ipAddress String?
@@ -311,7 +312,7 @@ model QuizQuestionTranslation {
 model QuizAttempt {
   id              String   @id @default(uuid())
   userId          String
-  day             Date     // Day based on server time (reset at 02:00)
+  day             DateTime // Day based on server time (reset at 02:00)
   questionIds     Json     // Array of 3 question IDs
   answers         Json     // Array of answer indices [0, 1, 2]
   correctCount    Int
@@ -336,7 +337,7 @@ model TokenTransfer {
   fromUserId String
   toUserId   String
   amount    Decimal   @db.Decimal(20, 8)
-  day       Date?     // For daily limits tracking
+  day       DateTime? // For daily limits tracking
   ipAddress String?
   userAgent String?
   createdAt DateTime @default(now())
@@ -436,7 +437,7 @@ model WheelConfig {
 model WheelSpin {
   id        String   @id @default(uuid())
   userId    String
-  day       Date?    // If daily limit applies
+  day       DateTime? // If daily limit applies
   segment   Int      // Which segment was hit (0-based index)
   rewardType String  // 'token', 'xp', 'none'
   amount    Decimal? @db.Decimal(20, 8) // If token reward

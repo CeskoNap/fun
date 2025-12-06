@@ -1,12 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useStore } from "../store/useStore";
 import { useI18n } from "../i18n/useI18n";
+import { AuthModal } from "./AuthModal";
 
 export function Header() {
   const { balance, level } = useStore();
   const { t, lang, setLang } = useI18n();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   return (
     <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur">
@@ -51,8 +54,28 @@ export function Header() {
           >
             {lang.toUpperCase()}
           </button>
+          <button
+            onClick={() => setAuthModalOpen(true)}
+            className="px-4 py-2 bg-accent text-black font-semibold rounded-md hover:bg-accent/90 transition-colors"
+          >
+            Login
+          </button>
         </div>
       </div>
+
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={(userId, token) => {
+          // Store token and userId
+          if (typeof window !== "undefined") {
+            localStorage.setItem("auth_token", token);
+            localStorage.setItem("user_id", userId);
+          }
+          // Refresh user data
+          window.location.reload();
+        }}
+      />
     </header>
   );
 }

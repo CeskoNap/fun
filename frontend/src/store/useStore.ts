@@ -13,7 +13,22 @@ interface StoreState {
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-const USER_ID = "demo-user-1"; // MVP: mock user id
+
+// Get user ID from localStorage or fallback to demo
+function getUserId(): string {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("user_id") || "demo-user-1";
+  }
+  return "demo-user-1";
+}
+
+// Get auth token for API calls
+function getAuthToken(): string | null {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("auth_token");
+  }
+  return null;
+}
 
 export const useStore = create<StoreState>((set, get) => ({
   balance: 0,
@@ -31,27 +46,49 @@ export const useStore = create<StoreState>((set, get) => ({
     }),
 
   fetchLevelAndBalance: async () => {
-    // Levels
-    const res = await fetch(`${API_BASE}/levels/me`, {
-      headers: { "X-User-Id": USER_ID },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      set({
-        level: data.level,
-        xp: parseFloat(data.xp),
-        xpToNextLevel: data.xpToNextLevel ? parseFloat(data.xpToNextLevel) : 0,
-      });
+    const userId = getUserId();
+    const token = getAuthToken();
+    
+    const headers: Record<string, string> = { "X-User-Id": userId };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
     }
 
-    // Balance
-    const br = await fetch(`${API_BASE}/me/balance`, {
-      headers: { "X-User-Id": USER_ID },
-    });
-    if (br.ok) {
-      const data = await br.json();
-      const bal = parseFloat(data.balance);
-      if (!isNaN(bal)) set({ balance: bal });
+    try {
+      // Levels
+      const res = await fetch(`${API_BASE}/levels/me`, {
+        headers,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        set({
+          level: data.level,
+          xp: parseFloat(data.xp),
+          xpToNextLevel: data.xpToNextLevel ? parseFloat(data.xpToNextLevel) : 0,
+        });
+      } else {
+        console.warn("Failed to fetch level info:", res.status, res.statusText);
+      }
+    } catch (error) {
+      console.error("Error fetching level info:", error);
+      // Don't throw - allow the app to continue with default values
+    }
+
+    try {
+      // Balance
+      const br = await fetch(`${API_BASE}/me/balance`, {
+        headers,
+      });
+      if (br.ok) {
+        const data = await br.json();
+        const bal = parseFloat(data.balance);
+        if (!isNaN(bal)) set({ balance: bal });
+      } else {
+        console.warn("Failed to fetch balance:", br.status, br.statusText);
+      }
+    } catch (error) {
+      console.error("Error fetching balance:", error);
+      // Don't throw - allow the app to continue with default values
     }
   },
 }));

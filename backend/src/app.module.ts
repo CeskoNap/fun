@@ -13,6 +13,7 @@ import { FairnessModule } from './fairness/fairness.module';
 import { WheelModule } from './wheel/wheel.module';
 import { MissionsModule } from './missions/missions.module';
 import { AchievementsModule } from './achievements/achievements.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { AchievementsModule } from './achievements/achievements.module';
     WheelModule,
     MissionsModule,
     AchievementsModule,
+    AuthModule,
   ],
 })
 export class AppModule {}
