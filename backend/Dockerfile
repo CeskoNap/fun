@@ -23,6 +23,9 @@ COPY backend ./backend
 
 WORKDIR /app/backend
 
+# Build the NestJS application
+RUN npm run build
+
 # Generate Prisma Client
 RUN npx prisma generate
 
@@ -31,4 +34,3 @@ EXPOSE 3001
 
 # Start server using compiled dist
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
-
