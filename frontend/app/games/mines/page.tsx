@@ -233,7 +233,16 @@ export default function MinesPage() {
       await fetchLevelAndBalance();
     } catch (e: any) {
       if (e instanceof ApiError) {
-        setError(e.message || "Failed to cash out");
+        // If bet is not active, it means the game already ended - don't show error
+        if (e.message.includes("Bet is not active") || e.message.includes("already ended")) {
+          // Game already ended, just disable it
+          setIsGameActive(false);
+          setGameEnded(true);
+          setCanCashOut(false);
+          await fetchLevelAndBalance();
+        } else {
+          setError(e.message || "Failed to cash out");
+        }
       } else {
         setError("An error occurred");
       }
@@ -328,7 +337,6 @@ export default function MinesPage() {
             <div className="space-y-1.5">
               <label className="flex items-center justify-between text-xs font-semibold text-white">
                 <span>Bet Amount</span>
-                <span className="text-xs font-normal text-zinc-400">$0.00</span>
               </label>
               <div className="flex gap-1.5">
                 <div className="flex-1 relative">
@@ -438,7 +446,6 @@ export default function MinesPage() {
             <div className="space-y-1.5 pt-3 border-t border-card/50">
               <label className="flex items-center justify-between text-xs font-semibold text-white">
                 <span>Total Profit ({currentMultiplier.toFixed(2)}×)</span>
-                <span className="text-xs font-normal text-zinc-400">$0.00</span>
               </label>
               <div className="relative">
                 <input

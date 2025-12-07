@@ -51,28 +51,8 @@ npx prisma generate
 # Applica migrazioni (crea schema DB)
 npx prisma migrate dev
 
-# Popola il database con dati iniziali (Games, XP Config, Level Config, ecc.)
-npx prisma db seed
-# oppure
-pnpm prisma:seed
-```
-
-### Database Seed
-
-Il seed inizializza il database con i dati necessari per il funzionamento della piattaforma:
-
-- **Games**: MINES, PLINKO, CRASH, DICE con configurazioni base
-- **XP Config**: Configurazione base XP (1 XP per 100 FUN)
-- **Level Config**: Livelli 1-100 con XP richiesti e reward
-- **Reward Config**: Configurazioni per daily, faucet, quiz e streak rewards
-- **Ad Reward Config**: Configurazione per le ricompense pubblicitarie
-- **Wheel Config**: Configurazione della ruota della fortuna
-- **Race Config**: Configurazione delle gare
-- **System Config**: Configurazioni di sistema (bonus iniziale, limiti trasferimenti, ecc.)
-- **Feature Flags**: Flag per abilitare/disabilitare funzionalità
-
-**Nota**: Il seed è idempotente (usa `upsert`), quindi può essere eseguito più volte senza creare duplicati.
-
+# (Opzionale) seed di base se/quando aggiunto
+# npx prisma db seed
 ```
 
 ### Avvio server di sviluppo

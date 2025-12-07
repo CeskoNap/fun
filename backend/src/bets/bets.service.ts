@@ -135,7 +135,9 @@ export class BetsService {
     });
 
     // XP
-    const xp = await this.levelsService.calculateXPFromBet(amount, gameType);
+    // Convert amount from centesimi to decimal for XP calculation
+    const amountDecimal = fromCentesimi(amount);
+    const xp = await this.levelsService.calculateXPFromBet(amountDecimal, gameType);
     const xpResult = await this.levelsService.addXpForUser(
       userId,
       xp,
@@ -475,7 +477,9 @@ export class BetsService {
       });
 
       // XP (even on loss)
-      const xp = await this.levelsService.calculateXPFromBet(bet.amount, GameType.MINES);
+      // Convert bet.amount from centesimi to decimal for XP calculation
+      const betAmountDecimal = fromCentesimi(bet.amount as bigint);
+      const xp = await this.levelsService.calculateXPFromBet(betAmountDecimal, GameType.MINES);
       const xpResult = await this.levelsService.addXpForUser(
         userId,
         xp,
@@ -538,6 +542,7 @@ export class BetsService {
     return {
       betId: bet.id,
       isMine: false,
+      gameEnded: false,
       gemsRevealed: newGemsRevealed,
       currentMultiplier,
       gameData: updatedGameData,
@@ -611,7 +616,9 @@ export class BetsService {
     });
 
     // XP
-    const xp = await this.levelsService.calculateXPFromBet(bet.amount, GameType.MINES);
+    // Convert bet.amount from centesimi to decimal for XP calculation
+    const betAmountDecimal = fromCentesimi(bet.amount as bigint);
+    const xp = await this.levelsService.calculateXPFromBet(betAmountDecimal, GameType.MINES);
     const xpResult = await this.levelsService.addXpForUser(
       userId,
       xp,

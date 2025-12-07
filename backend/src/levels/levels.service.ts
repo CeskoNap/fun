@@ -55,13 +55,15 @@ export class LevelsService {
 
   /**
    * Calculate XP earned from a bet
+   * @param betAmount - Bet amount in decimal format (e.g., 10.50), not in centesimi
+   * @param gameType - Game type for multiplier
    */
   async calculateXPFromBet(
-    betAmount: bigint | number, // Bet amount as integer (no decimals)
+    betAmount: number, // Bet amount in decimal format (e.g., 10.50)
     gameType: GameType,
   ): Promise<Decimal> {
-    // Convert to number for XP calculation
-    const betAmountNum = typeof betAmount === 'bigint' ? Number(betAmount) : betAmount;
+    // Convert to Decimal for XP calculation
+    const betAmountNum = betAmount;
     const betAmountDec = new Decimal(betAmountNum);
     const xpConfig = await this.getXpConfig();
     
