@@ -82,10 +82,6 @@ Per usare la dashboard `/admin/*` in modo “reale”, in produzione dovrai:
 
 Per sviluppo locale puoi assumere che l’utente demo sia admin (il guard è ancora permissivo).
 
-## Deployment
-
-Per deployare su Railway (hosting cloud gratuito), vedi la [Guida Railway](./RAILWAY.md).
-
 ## Documentation
 
 - [Token Design](./docs/token-design.md)
@@ -93,5 +89,4 @@ Per deployare su Railway (hosting cloud gratuito), vedi la [Guida Railway](./RAI
 - [Backend Implementation Summary](./docs/backend-implementation-summary.md)
 - [API Reference (Frontend)](./docs/api-reference-frontend.md)
 - [Reward System](./docs/reward-system.md)
-- [Railway Deployment Guide](./RAILWAY.md)
 
