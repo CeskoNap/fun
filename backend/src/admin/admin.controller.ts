@@ -1,10 +1,11 @@
-import { Controller, Get, Put, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AuthGuard } from '../common/guards/auth.guard';
+import { AdminGuard } from '../common/guards/admin.guard';
 import { CurrentUser } from '../common/decorators/user.decorator';
 
 @Controller('admin')
-@UseGuards(AuthGuard) // TODO: Add admin role check
+@UseGuards(AuthGuard, AdminGuard)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
@@ -129,6 +130,64 @@ export class AdminController {
   @Post('achievements/:id/delete')
   async deleteAchievement(@CurrentUser() adminId: string, @Param('id') id: string) {
     return this.adminService.deleteAchievement(id, adminId);
+  }
+
+  // ============================================
+  // USER MANAGEMENT
+  // ============================================
+
+  @Get('users')
+  async listUsers(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('role') role?: string,
+    @Query('isBanned') isBanned?: string,
+  ) {
+    return this.adminService.listUsers({
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 50,
+      search,
+      role: role as any,
+      isBanned: isBanned === 'true' ? true : isBanned === 'false' ? false : undefined,
+    });
+  }
+
+  @Get('users/:id')
+  async getUser(@Param('id') id: string) {
+    return this.adminService.getUser(id);
+  }
+
+  @Post('users/:id/ban')
+  async banUser(
+    @CurrentUser() adminId: string,
+    @Param('id') userId: string,
+    @Body() body: { reason?: string; until?: string },
+  ) {
+    return this.adminService.banUser(userId, adminId, body.reason, body.until);
+  }
+
+  @Post('users/:id/unban')
+  async unbanUser(@CurrentUser() adminId: string, @Param('id') userId: string) {
+    return this.adminService.unbanUser(userId, adminId);
+  }
+
+  @Post('users/:id/give-tokens')
+  async giveTokens(
+    @CurrentUser() adminId: string,
+    @Param('id') userId: string,
+    @Body() body: { amount: number; reason?: string },
+  ) {
+    return this.adminService.giveTokens(userId, adminId, body.amount, body.reason);
+  }
+
+  @Put('users/:id')
+  async updateUser(
+    @CurrentUser() adminId: string,
+    @Param('id') userId: string,
+    @Body() body: { role?: string; displayName?: string; language?: string },
+  ) {
+    return this.adminService.updateUser(userId, adminId, body);
   }
 }
 

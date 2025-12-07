@@ -18,6 +18,13 @@ export const it = {
     rewardsDesc: "Daily, faucet, ads e quiz giornaliero.",
     levelsTitle: "Livelli",
     levelsDesc: "Segui XP, livelli e milestone.",
+    heroTitle: "La più grande piattaforma di casinò online e scommesse sportive",
+    heroSubtitle: "Gioca con token FUN. Nessun denaro reale, solo divertimento.",
+    registerButton: "Registrati",
+    trendingGames: "Giochi in Tendenza",
+    comingSoon: "Prossimamente",
+    playNow: "Gioca Ora",
+    moreGamesComing: "Altri giochi emozionanti in arrivo!",
   },
   header: {
     brand: "Fun",

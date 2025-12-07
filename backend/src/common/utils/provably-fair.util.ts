@@ -51,14 +51,3 @@ export function getRandomFloat01(
   const int = parseInt(slice, 16);
   return int / Math.pow(2, 52);
 }
-
-{
-  "cells": [],
-  "metadata": {
-    "language_info": {
-      "name": "python"
-    }
-  },
-  "nbformat": 4,
-  "nbformat_minor": 2
-}

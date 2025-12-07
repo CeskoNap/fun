@@ -1,12 +1,13 @@
-import { Controller, Get, Post, Put, Param, Body, UseGuards } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Controller, Get, Post, Put, Param, Body, UseGuards, NotFoundException, BadRequestException } from '@nestjs/common';
+import { PrismaService, Prisma } from '../prisma/prisma.service';
 import { RacesService } from '../races/races.service';
 import { AuthGuard } from '../common/guards/auth.guard';
+import { AdminGuard } from '../common/guards/admin.guard';
 import { CurrentUser } from '../common/decorators/user.decorator';
 import { RaceStatus } from '@prisma/client';
 
 @Controller('admin/races')
-@UseGuards(AuthGuard) // TODO: enforce admin role
+@UseGuards(AuthGuard, AdminGuard)
 export class AdminRacesController {
   constructor(
     private prisma: PrismaService,

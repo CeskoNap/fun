@@ -7,13 +7,13 @@ import { updateUserBalance } from '../common/utils/balance.util';
 import { LevelsService } from '../levels/levels.service';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
 
-interface MissionObjective {
+export interface MissionObjective {
   type: 'bet_count' | 'wager_volume';
   target: number;
   gameType?: GameType;
 }
 
-interface MissionReward {
+export interface MissionReward {
   tokenAmount?: number;
   xpAmount?: number;
 }

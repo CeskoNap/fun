@@ -1,4 +1,5 @@
 import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaClient } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { TransactionType } from '@prisma/client';
 
@@ -8,12 +9,15 @@ export interface BalanceUpdateResult {
   transactionId: string;
 }
 
+// Type for Prisma client (either PrismaService or transaction client)
+type PrismaClientLike = Pick<PrismaService, 'userBalance' | 'transaction'>;
+
 /**
  * Atomically update user balance with transaction logging
  * Uses optimistic locking via version field
  */
 export async function updateUserBalance(
-  prisma: PrismaService,
+  prisma: PrismaClientLike,
   userId: string,
   amount: Decimal, // Positive for credit, negative for debit
   transactionType: TransactionType,

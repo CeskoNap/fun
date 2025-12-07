@@ -18,6 +18,13 @@ export const en = {
     rewardsDesc: "Daily, faucet, ads & quiz rewards.",
     levelsTitle: "Levels",
     levelsDesc: "Track your XP, levels and milestones.",
+    heroTitle: "The biggest online casino & sports betting platform",
+    heroSubtitle: "Play with FUN tokens. No real money, pure entertainment.",
+    registerButton: "Register",
+    trendingGames: "Trending Games",
+    comingSoon: "Coming Soon",
+    playNow: "Play Now",
+    moreGamesComing: "More exciting games coming soon!",
   },
   header: {
     brand: "Fun",

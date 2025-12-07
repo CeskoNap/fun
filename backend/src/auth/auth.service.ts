@@ -30,17 +30,34 @@ export class AuthService {
       throw new BadRequestException('Invalid email format');
     }
 
+    // Normalize email (lowercase)
+    const normalizedEmail = dto.email.toLowerCase().trim();
+
+    // Validate username format (alphanumeric, underscore, hyphen, 3-20 chars)
+    const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
+    if (!usernameRegex.test(dto.username)) {
+      throw new BadRequestException('Username must be 3-20 characters and contain only letters, numbers, underscores, or hyphens');
+    }
+
+    // Normalize username (lowercase for storage to prevent case-sensitive duplicates)
+    const normalizedUsername = dto.username.toLowerCase().trim();
+
     // Check if email already exists
     const existingEmail = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: { email: normalizedEmail },
     });
     if (existingEmail) {
       throw new ConflictException('Email already registered');
     }
 
-    // Check if username already exists
-    const existingUsername = await this.prisma.user.findUnique({
-      where: { username: dto.username },
+    // Check if username already exists (case-insensitive - check lowercase version)
+    const existingUsername = await this.prisma.user.findFirst({
+      where: { 
+        username: {
+          equals: normalizedUsername,
+          mode: 'insensitive',
+        },
+      },
     });
     if (existingUsername) {
       throw new ConflictException('Username already taken');
@@ -54,66 +71,105 @@ export class AuthService {
     // Hash password
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
-    // Create user
-    const user = await this.prisma.user.create({
-      data: {
-        email: dto.email,
-        passwordHash,
-        username: dto.username,
-        displayName: dto.displayName || dto.username,
-        oauthProvider: null,
-        oauthId: null,
-        language: 'en',
-      },
-    });
+    // Use transaction to ensure atomicity
+    try {
+      const result = await this.prisma.$transaction(async (tx) => {
+        // Create user (store username in lowercase to prevent duplicates)
+        const user = await tx.user.create({
+          data: {
+            email: normalizedEmail,
+            passwordHash,
+            username: normalizedUsername, // Store lowercase to prevent case-sensitive duplicates
+            displayName: (dto.displayName || dto.username).trim(), // Display name keeps original case
+            oauthProvider: null,
+            oauthId: null,
+            language: 'en',
+          },
+        });
 
-    // Create initial balance
-    await this.prisma.userBalance.create({
-      data: {
-        userId: user.id,
-        balance: 0,
-        lockedBalance: 0,
-      },
-    });
+        // Create initial balance
+        await tx.userBalance.create({
+          data: {
+            userId: user.id,
+            balance: 0,
+            lockedBalance: 0,
+          },
+        });
 
-    // Create initial level
-    await this.prisma.userLevel.create({
-      data: {
-        userId: user.id,
-        level: 1,
-        xp: 0,
-        totalXpEarned: 0,
-      },
-    });
+        // Create initial level
+        await tx.userLevel.create({
+          data: {
+            userId: user.id,
+            level: 1,
+            xp: 0,
+            totalXpEarned: 0,
+          },
+        });
 
-    // Don't return password hash
-    const { passwordHash: _, ...userWithoutPassword } = user;
+        return user;
+      });
 
-    return {
-      user: userWithoutPassword,
-      userId: user.id,
-    };
+      // Create session (auto-login after registration)
+      const session = await this.prisma.session.create({
+        data: {
+          userId: result.id,
+          token: this.generateToken(),
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        },
+      });
+
+      // Don't return password hash
+      const { passwordHash: _, ...userWithoutPassword } = result;
+
+      return {
+        user: userWithoutPassword,
+        userId: result.id,
+        token: session.token,
+      };
+    } catch (error: any) {
+      // Handle Prisma unique constraint errors
+      if (error.code === 'P2002') {
+        if (error.meta?.target?.includes('email')) {
+          throw new ConflictException('Email already registered');
+        }
+        if (error.meta?.target?.includes('username')) {
+          throw new ConflictException('Username already taken');
+        }
+      }
+      throw error;
+    }
   }
 
   async login(dto: LoginDto) {
-    // Find user by email
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+    // Normalize email (lowercase)
+    const normalizedEmail = dto.email.toLowerCase().trim();
+
+    // Find user by email (case-insensitive)
+    const user = await this.prisma.user.findFirst({
+      where: {
+        email: {
+          equals: normalizedEmail,
+          mode: 'insensitive',
+        },
+      },
     });
 
     if (!user || !user.passwordHash) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     // Check if user is banned
     if (user.isBanned) {
-      throw new UnauthorizedException('Account is banned');
+      const banMessage = user.banReason 
+        ? `Account is banned: ${user.banReason}`
+        : 'Account is banned';
+      throw new UnauthorizedException(banMessage);
     }
 
     // Verify password
     const isValidPassword = await bcrypt.compare(dto.password, user.passwordHash);
     if (!isValidPassword) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     // Create session

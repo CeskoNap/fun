@@ -1,7 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { LevelsService } from '../levels/levels.service';
 import { Decimal } from '@prisma/client/runtime/library';
+import { updateUserBalance } from '../common/utils/balance.util';
+import { UserRole } from '@prisma/client';
 
 @Injectable()
 export class AdminService {
@@ -395,6 +397,273 @@ export class AdminService {
         allRewardsClaimed: true,
       },
     };
+  }
+
+  // ============================================
+  // USER MANAGEMENT
+  // ============================================
+
+  async listUsers(options: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: UserRole;
+    isBanned?: boolean;
+  }) {
+    const page = options.page || 1;
+    const limit = options.limit || 50;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+
+    if (options.search) {
+      where.OR = [
+        { username: { contains: options.search, mode: 'insensitive' } },
+        { email: { contains: options.search, mode: 'insensitive' } },
+        { displayName: { contains: options.search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (options.role) {
+      where.role = options.role;
+    }
+
+    if (options.isBanned !== undefined) {
+      where.isBanned = options.isBanned;
+    }
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          displayName: true,
+          role: true,
+          isBanned: true,
+          bannedUntil: true,
+          banReason: true,
+          isActive: true,
+          createdAt: true,
+          balance: {
+            select: {
+              balance: true,
+            },
+          },
+          userLevel: {
+            select: {
+              level: true,
+              xp: true,
+            },
+          },
+        },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      users: users.map((u) => ({
+        ...u,
+        balance: u.balance?.balance.toString() || '0',
+        level: u.userLevel?.level || 1,
+        xp: u.userLevel?.xp.toString() || '0',
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getUser(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        balance: true,
+        userLevel: true,
+        _count: {
+          select: {
+            bets: true,
+            transactions: true,
+            raceParticipants: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const { passwordHash, ...userWithoutPassword } = user;
+
+    return {
+      ...userWithoutPassword,
+      balance: user.balance?.balance.toString() || '0',
+      level: user.userLevel?.level || 1,
+      xp: user.userLevel?.xp.toString() || '0',
+    };
+  }
+
+  async banUser(userId: string, adminId: string, reason?: string, until?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.role === 'ADMIN') {
+      throw new BadRequestException('Cannot ban admin users');
+    }
+
+    const bannedUntil = until ? new Date(until) : null;
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        isBanned: true,
+        bannedUntil,
+        banReason: reason || 'Banned by admin',
+      },
+    });
+
+    await this.prisma.adminActionLog.create({
+      data: {
+        adminId,
+        targetUserId: userId,
+        action: 'ban_user',
+        details: {
+          reason,
+          until: bannedUntil?.toISOString(),
+        },
+      },
+    });
+
+    return updated;
+  }
+
+  async unbanUser(userId: string, adminId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        isBanned: false,
+        bannedUntil: null,
+        banReason: null,
+      },
+    });
+
+    await this.prisma.adminActionLog.create({
+      data: {
+        adminId,
+        targetUserId: userId,
+        action: 'unban_user',
+        details: {},
+      },
+    });
+
+    return updated;
+  }
+
+  async giveTokens(userId: string, adminId: string, amount: number, reason?: string) {
+    if (amount <= 0) {
+      throw new BadRequestException('Amount must be positive');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const amountDec = new Decimal(amount);
+
+    const result = await updateUserBalance(
+      this.prisma,
+      userId,
+      amountDec,
+      'ADMIN_ADJUSTMENT',
+      {
+        reason: reason || 'Admin token grant',
+        adminId,
+      },
+    );
+
+    await this.prisma.adminActionLog.create({
+      data: {
+        adminId,
+        targetUserId: userId,
+        action: 'give_tokens',
+        details: {
+          amount: amount.toString(),
+          reason,
+          balanceBefore: result.balanceBefore.toString(),
+          balanceAfter: result.balanceAfter.toString(),
+        },
+      },
+    });
+
+    return {
+      userId,
+      amount: amount.toString(),
+      balanceBefore: result.balanceBefore.toString(),
+      balanceAfter: result.balanceAfter.toString(),
+      transactionId: result.transactionId,
+    };
+  }
+
+  async updateUser(userId: string, adminId: string, data: { role?: string; displayName?: string; language?: string }) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Prevent changing own role or banning self
+    if (userId === adminId && data.role && data.role !== user.role) {
+      throw new BadRequestException('Cannot change your own role');
+    }
+
+    const updateData: any = {};
+    if (data.role !== undefined) {
+      if (!['USER', 'MODERATOR', 'ADMIN'].includes(data.role)) {
+        throw new BadRequestException('Invalid role');
+      }
+      updateData.role = data.role as UserRole;
+    }
+    if (data.displayName !== undefined) {
+      updateData.displayName = data.displayName;
+    }
+    if (data.language !== undefined) {
+      if (!['en', 'it'].includes(data.language)) {
+        throw new BadRequestException('Invalid language');
+      }
+      updateData.language = data.language;
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+    });
+
+    await this.prisma.adminActionLog.create({
+      data: {
+        adminId,
+        targetUserId: userId,
+        action: 'update_user',
+        details: data,
+      },
+    });
+
+    const { passwordHash, ...userWithoutPassword } = updated;
+    return userWithoutPassword;
   }
 }
 

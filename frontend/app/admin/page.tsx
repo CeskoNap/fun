@@ -1,0 +1,139 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useI18n } from "../../src/i18n/useI18n";
+
+interface Stats {
+  totalUsers: number;
+  activeUsers: number;
+  bannedUsers: number;
+  totalBalance: string;
+  totalTransactions: number;
+}
+
+export default function AdminDashboard() {
+  const { t } = useI18n();
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  const loadStats = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+      const token = localStorage.getItem("auth_token");
+      
+      if (!token) {
+        setError("Not authenticated");
+        return;
+      }
+
+      // For now, we'll use a simple approach - in production you'd have a dedicated stats endpoint
+      const usersRes = await fetch(`${API_BASE}/admin/users?limit=1`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!usersRes.ok) {
+        throw new Error("Failed to load stats");
+      }
+
+      const usersData = await usersRes.json();
+      
+      // Calculate stats from users data
+      const totalUsers = usersData.pagination?.total || 0;
+      const activeUsers = usersData.users?.filter((u: any) => !u.isBanned).length || 0;
+      const bannedUsers = usersData.users?.filter((u: any) => u.isBanned).length || 0;
+
+      setStats({
+        totalUsers,
+        activeUsers,
+        bannedUsers,
+        totalBalance: "0", // Would need a dedicated endpoint
+        totalTransactions: 0, // Would need a dedicated endpoint
+      });
+    } catch (e: any) {
+      setError(e.message || "Failed to load dashboard");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-zinc-400">Loading dashboard...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-900/30 border border-red-700 rounded-xl p-4 text-red-400">
+        Error: {error}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
+        <p className="text-zinc-400">Manage users, races, and platform settings</p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-6">
+          <div className="text-sm text-zinc-400 mb-1">Total Users</div>
+          <div className="text-3xl font-bold text-white">{stats?.totalUsers || 0}</div>
+        </div>
+        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-6">
+          <div className="text-sm text-zinc-400 mb-1">Active Users</div>
+          <div className="text-3xl font-bold text-green-400">{stats?.activeUsers || 0}</div>
+        </div>
+        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-6">
+          <div className="text-sm text-zinc-400 mb-1">Banned Users</div>
+          <div className="text-3xl font-bold text-red-400">{stats?.bannedUsers || 0}</div>
+        </div>
+        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-6">
+          <div className="text-sm text-zinc-400 mb-1">Total Balance</div>
+          <div className="text-3xl font-bold text-accent">{stats?.totalBalance || "0"} FUN</div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Link
+          href="/admin/users"
+          className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-6 hover:border-accent transition-colors"
+        >
+          <h3 className="text-xl font-semibold text-white mb-2">👥 User Management</h3>
+          <p className="text-sm text-zinc-400">Manage users, ban/unban, give tokens</p>
+        </Link>
+        <Link
+          href="/admin/races"
+          className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-6 hover:border-accent transition-colors"
+        >
+          <h3 className="text-xl font-semibold text-white mb-2">🏁 Race Management</h3>
+          <p className="text-sm text-zinc-400">Create, activate, and manage races</p>
+        </Link>
+        <Link
+          href="/admin/config"
+          className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-6 hover:border-accent transition-colors"
+        >
+          <h3 className="text-xl font-semibold text-white mb-2">⚙️ Configuration</h3>
+          <p className="text-sm text-zinc-400">Configure XP, rewards, and settings</p>
+        </Link>
+      </div>
+    </div>
+  );
+}
+

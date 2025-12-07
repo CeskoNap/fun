@@ -18,9 +18,15 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // Health check endpoint
+  app.getHttpAdapter().get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
   const port = process.env.PORT || 3001;
   await app.listen(port);
   console.log(`🚀 Backend running on port ${port}`);
+  console.log(`📡 Health check: http://localhost:${port}/health`);
 }
 
 bootstrap();
