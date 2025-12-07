@@ -55,7 +55,8 @@ export const useStore = create<StoreState>((set, get) => ({
     }
 
     try {
-      // Levels
+    // Levels - only fetch if user is authenticated
+    if (userId && userId !== 'anonymous') {
       const res = await fetch(`${API_BASE}/levels/me`, {
         headers,
       });
@@ -63,26 +64,30 @@ export const useStore = create<StoreState>((set, get) => ({
         const data = await res.json();
         set({
           level: data.level,
-          xp: parseFloat(data.xp),
+          xp: parseFloat(data.xp || data.totalXpEarned || '0'),
           xpToNextLevel: data.xpToNextLevel ? parseFloat(data.xpToNextLevel) : 0,
         });
+      } else if (res.status === 401 || res.status === 404) {
+        // User not authenticated or not found - use defaults
+        console.debug("User not authenticated for level fetch");
       } else {
         console.warn("Failed to fetch level info:", res.status, res.statusText);
       }
+    }
     } catch (error) {
       console.error("Error fetching level info:", error);
       // Don't throw - allow the app to continue with default values
     }
 
     try {
-      // Balance
-      const br = await fetch(`${API_BASE}/me/balance`, {
+    // Balance
+    const br = await fetch(`${API_BASE}/me/balance`, {
         headers,
-      });
-      if (br.ok) {
-        const data = await br.json();
-        const bal = parseFloat(data.balance);
-        if (!isNaN(bal)) set({ balance: bal });
+    });
+    if (br.ok) {
+      const data = await br.json();
+      const bal = parseFloat(data.balance);
+      if (!isNaN(bal)) set({ balance: bal });
       } else {
         console.warn("Failed to fetch balance:", br.status, br.statusText);
       }

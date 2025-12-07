@@ -63,12 +63,12 @@ function ToastContainer({ toasts }: { toasts: Toast[] }) {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`min-w-[220px] max-w-xs rounded-lg px-3 py-2 text-sm shadow-lg border ${
+          className={`min-w-[220px] max-w-xs rounded-lg px-3 py-2 text-sm shadow-lg ${
             toast.type === "success"
-              ? "bg-emerald-900/90 border-emerald-500 text-emerald-50"
+              ? "bg-emerald-900/90 text-emerald-50"
               : toast.type === "error"
-              ? "bg-red-900/90 border-red-500 text-red-50"
-              : "bg-zinc-900/90 border-zinc-600 text-zinc-50"
+              ? "bg-red-900/90 text-red-50"
+              : "bg-zinc-900/90 text-zinc-50"
           }`}
         >
           {toast.message}

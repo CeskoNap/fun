@@ -29,6 +29,6 @@ RUN npx prisma generate
 # Expose port
 EXPOSE 3001
 
-# Start in development mode with watch
-CMD ["sh", "-c", "npx prisma migrate deploy && (npm run start:dev || /app/node_modules/.bin/nest start --watch)"]
+# Start server using compiled dist
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
 

@@ -118,7 +118,7 @@ export default function FairnessPage() {
 
   const renderGameData = (data: any) => {
     return (
-      <pre className="text-xs bg-zinc-950/70 border border-zinc-800 rounded p-2 overflow-x-auto">
+      <pre className="text-xs bg-zinc-950/70 rounded p-2 overflow-x-auto">
         {JSON.stringify(data, null, 2)}
       </pre>
     );
@@ -134,7 +134,7 @@ export default function FairnessPage() {
       </div>
 
       {/* Verify by Bet ID */}
-      <section className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-4">
+      <section className="bg-card/80 rounded-xl p-4 space-y-4">
         <h2 className="text-lg font-semibold">{t("fairness.verifyByBetId")}</h2>
         <div className="flex flex-wrap gap-4 items-end">
           <div>
@@ -145,7 +145,7 @@ export default function FairnessPage() {
               type="text"
               value={betId}
               onChange={(e) => setBetId(e.target.value)}
-              className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-sm w-64"
+              className="bg-zinc-950 rounded px-2 py-1 text-sm w-64"
             />
           </div>
           <div>
@@ -155,7 +155,7 @@ export default function FairnessPage() {
             <select
               value={betGameType}
               onChange={(e) => setBetGameType(e.target.value as GameType)}
-              className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-sm w-32"
+              className="bg-zinc-950 rounded px-2 py-1 text-sm w-32"
             >
               <option value="MINES">Mines</option>
               <option value="PLINKO">Plinko</option>
@@ -206,11 +206,11 @@ export default function FairnessPage() {
       </section>
 
       {/* Manual verification */}
-      <section className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-4">
+      <section className="bg-card/80 rounded-xl p-4 space-y-4">
         <h2 className="text-lg font-semibold">{t("fairness.manualTitle")}</h2>
 
         {/* Mines manual */}
-        <div className="border border-zinc-800 rounded-lg p-3 space-y-3">
+        <div className="rounded-lg p-3 space-y-3">
           <h3 className="text-sm font-semibold">{t("fairness.manualMines")}</h3>
           <div className="flex flex-wrap gap-4 items-end">
             <div>
@@ -221,7 +221,7 @@ export default function FairnessPage() {
                 onChange={(e) =>
                   setMinesInput((s) => ({ ...s, serverSeed: e.target.value }))
                 }
-                className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs w-64"
+                className="bg-zinc-950 rounded px-2 py-1 text-xs w-64"
               />
             </div>
             <div>
@@ -232,7 +232,7 @@ export default function FairnessPage() {
                 onChange={(e) =>
                   setMinesInput((s) => ({ ...s, clientSeed: e.target.value }))
                 }
-                className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs w-56"
+                className="bg-zinc-950 rounded px-2 py-1 text-xs w-56"
               />
             </div>
             <div>
@@ -243,7 +243,7 @@ export default function FairnessPage() {
                 onChange={(e) =>
                   setMinesInput((s) => ({ ...s, nonce: parseInt(e.target.value) || 0 }))
                 }
-                className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs w-24"
+                className="bg-zinc-950 rounded px-2 py-1 text-xs w-24"
               />
             </div>
           </div>
@@ -259,7 +259,7 @@ export default function FairnessPage() {
                     amount: parseFloat(e.target.value) || 0,
                   }))
                 }
-                className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs w-28"
+                className="bg-zinc-950 rounded px-2 py-1 text-xs w-28"
               />
             </div>
             <div>
@@ -273,7 +273,7 @@ export default function FairnessPage() {
                     rows: parseInt(e.target.value) || 1,
                   }))
                 }
-                className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs w-20"
+                className="bg-zinc-950 rounded px-2 py-1 text-xs w-20"
               />
             </div>
             <div>
@@ -287,7 +287,7 @@ export default function FairnessPage() {
                     cols: parseInt(e.target.value) || 1,
                   }))
                 }
-                className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs w-20"
+                className="bg-zinc-950 rounded px-2 py-1 text-xs w-20"
               />
             </div>
             <div>
@@ -301,7 +301,7 @@ export default function FairnessPage() {
                     minesCount: parseInt(e.target.value) || 1,
                   }))
                 }
-                className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs w-20"
+                className="bg-zinc-950 rounded px-2 py-1 text-xs w-20"
               />
             </div>
             <button
@@ -324,7 +324,7 @@ export default function FairnessPage() {
         </div>
 
         {/* Plinko manual */}
-        <div className="border border-zinc-800 rounded-lg p-3 space-y-3">
+        <div className="rounded-lg p-3 space-y-3">
           <h3 className="text-sm font-semibold">{t("fairness.manualPlinko")}</h3>
           <div className="flex flex-wrap gap-4 items-end">
             <div>
@@ -335,7 +335,7 @@ export default function FairnessPage() {
                 onChange={(e) =>
                   setPlinkoInput((s) => ({ ...s, serverSeed: e.target.value }))
                 }
-                className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs w-64"
+                className="bg-zinc-950 rounded px-2 py-1 text-xs w-64"
               />
             </div>
             <div>
@@ -346,7 +346,7 @@ export default function FairnessPage() {
                 onChange={(e) =>
                   setPlinkoInput((s) => ({ ...s, clientSeed: e.target.value }))
                 }
-                className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs w-56"
+                className="bg-zinc-950 rounded px-2 py-1 text-xs w-56"
               />
             </div>
             <div>
@@ -357,7 +357,7 @@ export default function FairnessPage() {
                 onChange={(e) =>
                   setPlinkoInput((s) => ({ ...s, nonce: parseInt(e.target.value) || 0 }))
                 }
-                className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs w-24"
+                className="bg-zinc-950 rounded px-2 py-1 text-xs w-24"
               />
             </div>
           </div>
@@ -373,7 +373,7 @@ export default function FairnessPage() {
                     amount: parseFloat(e.target.value) || 0,
                   }))
                 }
-                className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs w-28"
+                className="bg-zinc-950 rounded px-2 py-1 text-xs w-28"
               />
             </div>
             <div>
@@ -387,7 +387,7 @@ export default function FairnessPage() {
                     rows: parseInt(e.target.value) || 12,
                   }))
                 }
-                className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs w-20"
+                className="bg-zinc-950 rounded px-2 py-1 text-xs w-20"
               />
             </div>
             <div>
@@ -397,7 +397,7 @@ export default function FairnessPage() {
                 onChange={(e) =>
                   setPlinkoInput((s) => ({ ...s, risk: e.target.value }))
                 }
-                className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs w-24"
+                className="bg-zinc-950 rounded px-2 py-1 text-xs w-24"
               >
                 <option value="low">low</option>
                 <option value="medium">medium</option>

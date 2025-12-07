@@ -73,7 +73,7 @@ export default function MinesPage() {
         </p>
       </div>
 
-      <section className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-4">
+      <section className="bg-card/80 rounded-xl p-4 space-y-4">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs text-zinc-400 mb-1">Amount (FUN)</label>
@@ -83,7 +83,7 @@ export default function MinesPage() {
               min={0.00000001}
               step={0.00000001}
               onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-              className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-sm w-32"
+              className="bg-zinc-950 rounded px-2 py-1 text-sm w-32"
             />
           </div>
           <div>
@@ -94,7 +94,7 @@ export default function MinesPage() {
               min={2}
               max={8}
               onChange={(e) => setRows(parseInt(e.target.value) || 5)}
-              className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-sm w-24"
+              className="bg-zinc-950 rounded px-2 py-1 text-sm w-24"
             />
           </div>
           <div>
@@ -105,7 +105,7 @@ export default function MinesPage() {
               min={2}
               max={8}
               onChange={(e) => setCols(parseInt(e.target.value) || 5)}
-              className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-sm w-24"
+              className="bg-zinc-950 rounded px-2 py-1 text-sm w-24"
             />
           </div>
           <div>
@@ -115,7 +115,7 @@ export default function MinesPage() {
               value={minesCount}
               min={1}
               onChange={(e) => setMinesCount(parseInt(e.target.value) || 1)}
-              className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-sm w-24"
+              className="bg-zinc-950 rounded px-2 py-1 text-sm w-24"
             />
           </div>
 

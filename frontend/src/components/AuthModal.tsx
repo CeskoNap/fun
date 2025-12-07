@@ -162,8 +162,8 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center min-h-screen bg-black/60 backdrop-blur-sm p-4">
-      <div className="relative bg-zinc-900 rounded-lg border border-zinc-800 w-full max-w-md p-6 shadow-2xl">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center min-h-screen bg-black/60 backdrop-blur-sm p-4">
+      <div className="relative bg-card rounded-lg w-full max-w-md p-6 shadow-2xl z-[10000]">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors"
@@ -198,7 +198,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
                   onChange={(e) =>
                     setFormData({ ...formData, username: e.target.value })
                   }
-                  className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                  className="w-full px-4 py-2 bg-zinc-800 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-accent"
                   placeholder="Choose a username (3-20 chars, letters, numbers, _ or -)"
                 />
               </div>
@@ -213,7 +213,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
                   onChange={(e) =>
                     setFormData({ ...formData, displayName: e.target.value })
                   }
-                  className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                  className="w-full px-4 py-2 bg-zinc-800 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-accent"
                   placeholder="Your display name"
                 />
               </div>
@@ -222,18 +222,18 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
 
           <div>
             <label className="block text-sm font-medium text-zinc-300 mb-1">
-              {mode === "login" ? "Email or Username" : "Email"}
+              {mode === "login" ? "Username or Email" : "Email"}
             </label>
             <input
               type={mode === "login" ? "text" : "email"}
               required
-              autoComplete="off"
+              autoComplete={mode === "login" ? "username" : "email"}
               value={formData.email}
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
               }
-              className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-              placeholder={mode === "login" ? "your@email.com or username" : "your@email.com"}
+              className="w-full px-4 py-2 bg-zinc-800 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-accent"
+              placeholder={mode === "login" ? "username or your@email.com" : "your@email.com"}
             />
           </div>
 
@@ -250,13 +250,13 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
               onChange={(e) =>
                 setFormData({ ...formData, password: e.target.value })
               }
-              className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+              className="w-full px-4 py-2 bg-zinc-800 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-accent"
               placeholder={mode === "login" ? "Enter your password" : "At least 6 characters"}
             />
           </div>
 
           {error && (
-            <div className="p-3 bg-red-900/30 border border-red-700 rounded-md text-red-400 text-sm animate-in fade-in duration-200">
+            <div className="p-3 bg-red-900/30 rounded-md text-red-400 text-sm animate-in fade-in duration-200">
               <div className="font-semibold mb-1">Error</div>
               <div>{error}</div>
             </div>

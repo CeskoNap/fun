@@ -151,7 +151,7 @@ export default function RacesPage() {
         </p>
       </div>
 
-      <section className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-3">
+      <section className="bg-card/80 rounded-xl p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="text-sm text-zinc-400">
             Current balance:{" "}
@@ -161,7 +161,7 @@ export default function RacesPage() {
           </div>
           <button
             onClick={loadRaces}
-            className="text-xs px-2 py-1 border border-zinc-700 rounded hover:border-accent transition-colors"
+            className="text-xs px-2 py-1 rounded transition-colors"
           >
             Refresh
           </button>
@@ -178,8 +178,8 @@ export default function RacesPage() {
             {races.map((race) => (
               <div
                 key={race.id}
-                className={`flex items-center justify-between border border-zinc-800 rounded-lg px-3 py-2 cursor-pointer hover:border-accent transition-colors ${
-                  selectedRaceId === race.id ? "border-accent" : ""
+                className={`flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer transition-colors ${
+                  selectedRaceId === race.id ? "bg-card/50" : ""
                 }`}
                 onClick={() => loadLeaderboard(race.id)}
               >
@@ -236,7 +236,7 @@ export default function RacesPage() {
         )}
       </section>
 
-      <section className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-3">
+      <section className="bg-card/80 rounded-xl p-4 space-y-3">
         <h2 className="text-lg font-semibold">Leaderboard</h2>
         {leaderboardError && (
           <div className="text-sm text-red-400">{leaderboardError}</div>
@@ -254,7 +254,7 @@ export default function RacesPage() {
             {leaderboard.participants.map((p) => (
               <div
                 key={`${leaderboard.raceId}-${p.rank}`}
-                className="flex justify-between border-b border-zinc-800/60 py-1 last:border-b-0"
+                className="flex justify-between py-1"
               >
                 <div>
                   <div className="font-semibold">

@@ -199,7 +199,7 @@ export default function AdminRacesPage() {
       </div>
 
       {error && (
-        <div className="bg-red-900/30 border border-red-700 rounded-xl p-4 text-red-400">
+        <div className="bg-red-900/30 rounded-xl p-4 text-red-400">
           {error}
         </div>
       )}
@@ -207,7 +207,7 @@ export default function AdminRacesPage() {
       {loading ? (
         <div className="text-center text-zinc-400 py-8">Loading races...</div>
       ) : (
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="bg-card/80 rounded-xl overflow-hidden">
           <table className="w-full">
             <thead className="bg-zinc-800">
               <tr>
@@ -277,7 +277,7 @@ export default function AdminRacesPage() {
       {/* Create Race Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-zinc-900 rounded-lg border border-zinc-800 w-full max-w-md p-6">
+          <div className="bg-card rounded-lg w-full max-w-md p-6">
             <h3 className="text-xl font-bold text-white mb-4">Create New Race</h3>
             <div className="space-y-4">
               <div>
@@ -286,7 +286,7 @@ export default function AdminRacesPage() {
                   type="text"
                   value={newRace.name}
                   onChange={(e) => setNewRace({ ...newRace, name: e.target.value })}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white"
+                  className="w-full bg-zinc-800 rounded px-3 py-2 text-white"
                   placeholder="Race name"
                 />
               </div>
@@ -295,7 +295,7 @@ export default function AdminRacesPage() {
                 <textarea
                   value={newRace.description}
                   onChange={(e) => setNewRace({ ...newRace, description: e.target.value })}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white"
+                  className="w-full bg-zinc-800 rounded px-3 py-2 text-white"
                   placeholder="Race description"
                   rows={3}
                 />
@@ -305,7 +305,7 @@ export default function AdminRacesPage() {
                 <select
                   value={newRace.gameType}
                   onChange={(e) => setNewRace({ ...newRace, gameType: e.target.value })}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white"
+                  className="w-full bg-zinc-800 rounded px-3 py-2 text-white"
                 >
                   <option value="">All Games</option>
                   <option value="MINES">Mines</option>
@@ -318,7 +318,7 @@ export default function AdminRacesPage() {
                   type="datetime-local"
                   value={newRace.startsAt}
                   onChange={(e) => setNewRace({ ...newRace, startsAt: e.target.value })}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white"
+                  className="w-full bg-zinc-800 rounded px-3 py-2 text-white"
                 />
               </div>
               <div>
@@ -327,7 +327,7 @@ export default function AdminRacesPage() {
                   type="datetime-local"
                   value={newRace.endsAt}
                   onChange={(e) => setNewRace({ ...newRace, endsAt: e.target.value })}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white"
+                  className="w-full bg-zinc-800 rounded px-3 py-2 text-white"
                 />
               </div>
               <div className="flex gap-3">

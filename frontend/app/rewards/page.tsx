@@ -219,7 +219,7 @@ export default function RewardsPage() {
 
       <div className="grid md:grid-cols-2 gap-4">
         {/* DAILY */}
-        <section className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-3">
+        <section className="bg-card/80 rounded-xl p-4 space-y-3">
           <h2 className="text-lg font-semibold">Daily Reward</h2>
           <button
             onClick={handleClaimDaily}
@@ -241,7 +241,7 @@ export default function RewardsPage() {
         </section>
 
         {/* FAUCET */}
-        <section className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-3">
+        <section className="bg-card/80 rounded-xl p-4 space-y-3">
           <h2 className="text-lg font-semibold">Hourly Faucet</h2>
           <button
             onClick={handleClaimFaucet}
@@ -268,7 +268,7 @@ export default function RewardsPage() {
         </section>
 
         {/* ADS */}
-        <section className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-3">
+        <section className="bg-card/80 rounded-xl p-4 space-y-3">
           <h2 className="text-lg font-semibold">Rewarded Ads</h2>
           <button
             onClick={handleClaimAds}
@@ -292,7 +292,7 @@ export default function RewardsPage() {
         </section>
 
         {/* QUIZ */}
-        <section className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-3">
+        <section className="bg-card/80 rounded-xl p-4 space-y-3">
           <h2 className="text-lg font-semibold">Daily Quiz</h2>
           {!quizStart && !quizResult && (
             <button

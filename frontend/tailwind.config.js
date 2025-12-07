@@ -7,8 +7,14 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: '#171717',
+        background: '#1A2C38',
         accent: '#FBBB0C',
+        'accent-dark': '#E5A800',
+        'card': '#0F212E',
+        'stake-dark': '#1A2C38',
+      },
+      fontFamily: {
+        'cream-cake': ['Cream Cake', 'sans-serif'],
       },
     },
   },

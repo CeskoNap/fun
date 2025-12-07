@@ -24,7 +24,7 @@ export default function LevelsPage() {
         </p>
       </div>
 
-      <section className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-3">
+      <section className="bg-card/80 rounded-xl p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm text-zinc-400">Current level</div>
@@ -53,7 +53,7 @@ export default function LevelsPage() {
         </div>
       </section>
 
-      <section className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-3">
+      <section className="bg-card/80 rounded-xl p-4 space-y-3">
         <h2 className="text-lg font-semibold">Milestones</h2>
         <div className="flex flex-wrap gap-3">
           {milestones.map((m) => {
@@ -61,10 +61,10 @@ export default function LevelsPage() {
             return (
               <div
                 key={m}
-                className={`px-3 py-2 rounded-full text-xs border ${
+                className={`px-3 py-2 rounded-full text-xs ${
                   unlocked
-                    ? "border-accent text-accent bg-accent/10"
-                    : "border-zinc-700 text-zinc-400"
+                    ? "text-accent bg-accent/10"
+                    : "text-zinc-400"
                 }`}
               >
                 Level {m} {unlocked ? "• unlocked" : "• locked"}

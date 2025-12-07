@@ -170,12 +170,12 @@ export default function AdminUsersPage() {
             setSearch(e.target.value);
             setPage(1);
           }}
-          className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-accent"
+          className="flex-1 bg-card rounded-lg px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-accent"
         />
       </div>
 
       {error && (
-        <div className="bg-red-900/30 border border-red-700 rounded-xl p-4 text-red-400">
+        <div className="bg-red-900/30 rounded-xl p-4 text-red-400">
           {error}
         </div>
       )}
@@ -185,7 +185,7 @@ export default function AdminUsersPage() {
       ) : (
         <>
           {/* Users Table */}
-          <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl overflow-hidden">
+          <div className="bg-card/80 rounded-xl overflow-hidden">
             <table className="w-full">
               <thead className="bg-zinc-800">
                 <tr>
@@ -290,7 +290,7 @@ export default function AdminUsersPage() {
       {/* Ban Modal */}
       {showBanModal && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-zinc-900 rounded-lg border border-zinc-800 w-full max-w-md p-6">
+          <div className="bg-card rounded-lg w-full max-w-md p-6">
             <h3 className="text-xl font-bold text-white mb-4">Ban User: {selectedUser.username}</h3>
             <div className="space-y-4">
               <div>
@@ -299,7 +299,7 @@ export default function AdminUsersPage() {
                   type="text"
                   value={banReason}
                   onChange={(e) => setBanReason(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white"
+                  className="w-full bg-zinc-800 rounded px-3 py-2 text-white"
                   placeholder="Ban reason..."
                 />
               </div>
@@ -329,7 +329,7 @@ export default function AdminUsersPage() {
       {/* Give Tokens Modal */}
       {showTokenModal && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-zinc-900 rounded-lg border border-zinc-800 w-full max-w-md p-6">
+          <div className="bg-card rounded-lg w-full max-w-md p-6">
             <h3 className="text-xl font-bold text-white mb-4">Give Tokens to: {selectedUser.username}</h3>
             <div className="space-y-4">
               <div>
@@ -338,7 +338,7 @@ export default function AdminUsersPage() {
                   type="number"
                   value={tokenAmount}
                   onChange={(e) => setTokenAmount(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white"
+                  className="w-full bg-zinc-800 rounded px-3 py-2 text-white"
                   placeholder="0.00000000"
                   step="0.00000001"
                   min="0"

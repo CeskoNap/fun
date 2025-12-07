@@ -101,7 +101,7 @@ export default function WheelPage() {
         </p>
       </div>
 
-      <section className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-4">
+      <section className="bg-card/80 rounded-xl p-4 space-y-4">
         <div className="flex items-center justify-between">
           <div className="text-sm text-zinc-400">
             {t("wheel.spinsLeft")}:{" "}
@@ -111,7 +111,7 @@ export default function WheelPage() {
           </div>
           <button
             onClick={loadConfig}
-            className="text-xs px-2 py-1 border border-zinc-700 rounded hover:border-accent transition-colors"
+            className="text-xs px-2 py-1 rounded transition-colors"
           >
             Refresh
           </button>

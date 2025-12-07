@@ -79,14 +79,11 @@ export function Header() {
   }, [accountMenuOpen]);
 
   return (
-    <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur">
-      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-50 bg-background shadow-xl border-0">
+      <div className="max-w-6xl mx-auto px-4 py-1.5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center text-black font-bold">
-            F
-          </div>
-          <span className="text-lg font-semibold text-white tracking-wide">
-            {t("header.brand")}
+          <span className="text-5xl font-cream-cake text-white tracking-wide font-normal" style={{ letterSpacing: '0.05em' }}>
+            Fun
           </span>
           <nav className="hidden md:flex items-center gap-4 ml-6 text-sm text-zinc-300">
             <Link href="/" className="hover:text-accent transition-colors">
@@ -145,8 +142,8 @@ export function Header() {
 
                 {/* Account Dropdown Menu */}
                 {accountMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl z-50 overflow-hidden">
-                    <div className="p-4 border-b border-zinc-800">
+                  <div className="absolute right-0 mt-2 w-64 bg-card rounded-lg shadow-xl z-50 overflow-hidden">
+                    <div className="p-4">
                       <div className="text-sm font-semibold text-white mb-3">
                         {username || "User"}
                       </div>

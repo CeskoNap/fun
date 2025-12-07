@@ -255,6 +255,15 @@ export class LevelsService {
    * Get user level data
    */
   async getUserLevel(userId: string) {
+    // First verify that the user exists
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
     let userLevel = await this.prisma.userLevel.findUnique({
       where: { userId },
     });

@@ -97,7 +97,7 @@ export default function MissionsPage() {
             return (
               <div
                 key={m.id}
-                className="border border-zinc-800 rounded-lg px-3 py-2 flex justify-between items-center"
+                className="rounded-lg px-3 py-2 flex justify-between items-center"
               >
                 <div className="space-y-1">
                   <div className="font-semibold">{m.name}</div>
@@ -146,7 +146,7 @@ export default function MissionsPage() {
         </p>
       </div>
 
-      <section className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-4">
+      <section className="bg-card/80 rounded-xl p-4 space-y-4">
         {error && <div className="text-sm text-red-400">{error}</div>}
         {loading && (
           <div className="text-sm text-zinc-400">Loading missions...</div>

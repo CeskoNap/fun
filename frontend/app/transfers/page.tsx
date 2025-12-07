@@ -94,7 +94,7 @@ export default function TransfersPage() {
         </p>
       </div>
 
-      <section className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-4">
+      <section className="bg-card/80 rounded-xl p-4 space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm text-zinc-400">Your level</div>
@@ -118,7 +118,7 @@ export default function TransfersPage() {
                 type="text"
                 value={toUsername}
                 onChange={(e) => setToUsername(e.target.value)}
-                className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-sm w-48"
+                className="bg-zinc-950 rounded px-2 py-1 text-sm w-48"
                 disabled={levelTooLow}
               />
             </div>
@@ -130,7 +130,7 @@ export default function TransfersPage() {
                 min={0.00000001}
                 step={0.00000001}
                 onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-                className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-sm w-40"
+                className="bg-zinc-950 rounded px-2 py-1 text-sm w-40"
                 disabled={levelTooLow}
               />
             </div>
@@ -153,7 +153,7 @@ export default function TransfersPage() {
         </div>
       </section>
 
-      <section className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-3">
+      <section className="bg-card/80 rounded-xl p-4 space-y-3">
         <h2 className="text-lg font-semibold">History</h2>
         {historyError && <div className="text-sm text-red-400">{historyError}</div>}
         {!historyError && history.length === 0 && (

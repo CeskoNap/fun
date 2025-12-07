@@ -2,13 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Hide scrollbar for horizontal scroll */
-.scrollbar-hide {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+@font-face {
+  font-family: 'Cream Cake';
+  src: url('/fonts/Cream Cake.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
 }
 
-.scrollbar-hide::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
+@font-face {
+  font-family: 'Cream Cake';
+  src: url('/fonts/Cream Cake Bold.otf') format('opentype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
 }
 
