@@ -110,7 +110,7 @@ export default function RacesPage() {
         await fetchLevelAndBalance();
         addToast({
           type: "success",
-          message: `Joined race ${race.name} (entry ${data.entryFee} FUN)`,
+          message: `Joined race ${race.name} (entry ${Math.round(parseFloat(data.entryFee)).toLocaleString()} FUN)`,
         });
       } else {
         addToast({
@@ -156,7 +156,7 @@ export default function RacesPage() {
           <div className="text-sm text-zinc-400">
             Current balance:{" "}
             <span className="text-accent font-semibold">
-              {balance.toFixed(8)} FUN
+              {Math.round(balance).toLocaleString()} FUN
             </span>
           </div>
           <button
@@ -190,7 +190,7 @@ export default function RacesPage() {
                   </div>
                   <div className="text-xs text-zinc-500 mt-1 space-y-0.5">
                     <div>
-                      Entry fee: {race.entryFee} FUN • Prize pool: {race.prizePool} FUN
+                      Entry fee: {Math.round(parseFloat(race.entryFee)).toLocaleString()} FUN • Prize pool: {Math.round(parseFloat(race.prizePool)).toLocaleString()} FUN
                     </div>
                     <div>
                       Status: {race.status} •{" "}
@@ -201,7 +201,7 @@ export default function RacesPage() {
                   </div>
                   {race.joined && (
                     <div className="text-xs text-emerald-400">
-                      Joined • Volume: {race.volume} FUN
+                      Joined • Volume: {Math.round(parseFloat(race.volume || "0")).toLocaleString()} FUN
                     </div>
                   )}
                 </div>
@@ -261,13 +261,13 @@ export default function RacesPage() {
                     #{p.rank} {p.username}
                   </div>
                   <div className="text-xs text-zinc-500">
-                    Volume: {p.volume} FUN
+                    Volume: {Math.round(parseFloat(p.volume || "0")).toLocaleString()} FUN
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-xs text-zinc-500">Prize</div>
                   <div className="text-sm font-semibold text-accent">
-                    {p.prize ? `${p.prize} FUN` : "-"}
+                    {p.prize ? `${Math.round(parseFloat(p.prize)).toLocaleString()} FUN` : "-"}
                   </div>
                 </div>
               </div>

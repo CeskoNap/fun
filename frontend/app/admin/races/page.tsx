@@ -231,8 +231,8 @@ export default function AdminRacesPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-zinc-400">{race.gameType || "All"}</td>
-                  <td className="px-4 py-3 text-accent">{parseFloat(race.entryFee).toFixed(8)} FUN</td>
-                  <td className="px-4 py-3 text-green-400">{parseFloat(race.prizePool).toFixed(8)} FUN</td>
+                  <td className="px-4 py-3 text-accent">{Math.round(parseFloat(race.entryFee)).toLocaleString()} FUN</td>
+                  <td className="px-4 py-3 text-green-400">{Math.round(parseFloat(race.prizePool)).toLocaleString()} FUN</td>
                   <td className="px-4 py-3 text-zinc-400 text-sm">
                     {new Date(race.startsAt).toLocaleString()}
                   </td>

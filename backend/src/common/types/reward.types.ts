@@ -28,20 +28,20 @@ export interface QuizRewardConfig {
 }
 
 export interface DailyRewardResult {
-  amount: Decimal;
+  amount: number; // Token amount as number (no decimals in storage)
   streak: number;
   level: number;
 }
 
 export interface FaucetRewardResult {
-  amount: Decimal;
+  amount: number; // Token amount as number (no decimals in storage)
   nextAvailableAt: Date;
   claimsToday: number;
   dailyLimit: number;
 }
 
 export interface AdRewardResult {
-  amount: Decimal;
+  amount: number; // Token amount as number (no decimals in storage)
   adsThisHour: number;
   adsToday: number;
   hourlyLimit: number;
@@ -62,7 +62,7 @@ export interface QuizStartResult {
 
 export interface QuizSubmitResult {
   correctCount: number;
-  amount: Decimal;
+  amount: number; // Token amount as number (no decimals in storage)
   questions: Array<{
     questionId: string;
     userAnswer: number;

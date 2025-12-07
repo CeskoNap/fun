@@ -71,12 +71,12 @@ export class AdminService {
       where: { level },
       update: {
         xpRequired: data.xpRequired !== undefined ? new Decimal(data.xpRequired) : undefined,
-        reward: data.reward !== undefined ? (data.reward === null ? null : new Decimal(data.reward)) : undefined,
+        reward: data.reward !== undefined ? (data.reward === null ? null : BigInt(Math.round(data.reward))) : undefined,
       },
       create: {
         level,
         xpRequired: new Decimal(data.xpRequired ?? 0),
-        reward: data.reward === null ? null : new Decimal(data.reward ?? 0),
+        reward: data.reward === null ? null : BigInt(Math.round(data.reward ?? 0)),
       },
     });
   }
@@ -126,7 +126,7 @@ export class AdminService {
     if (!existing) {
       return this.prisma.adRewardConfig.create({
         data: {
-          rewardAmount: new Decimal(data.rewardAmount ?? 50),
+          rewardAmount: BigInt(Math.round(data.rewardAmount ?? 50)),
           adsPerHourLimit: data.adsPerHourLimit ?? 5,
           dailyAdsCap: data.dailyAdsCap ?? 30,
           isActive: data.isActive ?? true,
@@ -137,7 +137,7 @@ export class AdminService {
     return this.prisma.adRewardConfig.update({
       where: { id: existing.id },
       data: {
-        rewardAmount: data.rewardAmount !== undefined ? new Decimal(data.rewardAmount) : undefined,
+        rewardAmount: data.rewardAmount !== undefined ? BigInt(Math.round(data.rewardAmount)) : undefined,
         adsPerHourLimit: data.adsPerHourLimit,
         dailyAdsCap: data.dailyAdsCap,
         isActive: data.isActive,
@@ -167,13 +167,13 @@ export class AdminService {
     return this.prisma.raceConfig.upsert({
       where: { name },
       update: {
-        entryFee: data.entryFee !== undefined ? new Decimal(data.entryFee) : undefined,
+        entryFee: data.entryFee !== undefined ? BigInt(Math.round(data.entryFee)) : undefined,
         prizeDistribution: data.prizeDistribution,
         isActive: data.isActive,
       },
       create: {
         name,
-        entryFee: new Decimal(data.entryFee ?? 100),
+        entryFee: BigInt(Math.round(data.entryFee ?? 100)),
         prizeDistribution: data.prizeDistribution ?? {
           topPercentageWinners: 25,
           tiers: [
@@ -481,6 +481,30 @@ export class AdminService {
     };
   }
 
+  async getStats() {
+    const [totalUsers, activeUsers, bannedUsers, totalBalanceResult, totalTransactions] = await Promise.all([
+      this.prisma.user.count(),
+      this.prisma.user.count({ where: { isBanned: false, isActive: true } }),
+      this.prisma.user.count({ where: { isBanned: true } }),
+      this.prisma.userBalance.aggregate({
+        _sum: {
+          balance: true,
+        },
+      }),
+      this.prisma.transaction.count(),
+    ]);
+
+    const totalBalance = totalBalanceResult._sum.balance || 0n;
+
+    return {
+      totalUsers,
+      activeUsers,
+      bannedUsers,
+      totalBalance: totalBalance.toString(),
+      totalTransactions,
+    };
+  }
+
   async getUser(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
@@ -584,12 +608,13 @@ export class AdminService {
       throw new NotFoundException('User not found');
     }
 
-    const amountDec = new Decimal(amount);
+    // Convert to BigInt (round to nearest integer, no decimals)
+    const amountBigInt = BigInt(Math.round(amount));
 
     const result = await updateUserBalance(
       this.prisma,
       userId,
-      amountDec,
+      amountBigInt,
       'ADMIN_ADJUSTMENT',
       {
         reason: reason || 'Admin token grant',

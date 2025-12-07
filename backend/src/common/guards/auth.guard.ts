@@ -1,23 +1,38 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { Observable } from 'rxjs';
+import { AuthService } from '../../auth/auth.service';
 
 /**
- * Simple auth guard - for now, just checks if userId is in request
- * TODO: Implement proper JWT/OAuth authentication
+ * Auth guard that validates Bearer token from Authorization header
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const userId = request.user?.id || request.headers['x-user-id'];
+  constructor(private authService: AuthService) {}
 
-    if (!userId) {
-      throw new UnauthorizedException('Authentication required');
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    
+    // Try to get token from Authorization header
+    const authorization = request.headers['authorization'];
+    if (authorization && authorization.startsWith('Bearer ')) {
+      const token = authorization.substring(7);
+      try {
+        const user = await this.authService.validateToken(token);
+        request.user = user;
+        request.userId = user.id;
+        return true;
+      } catch (error) {
+        throw new UnauthorizedException('Invalid or expired token');
+      }
     }
 
-    // Attach userId to request for easy access
-    request.userId = userId;
-    return true;
+    // Fallback: check for userId in request (for backward compatibility)
+    const userId = request.user?.id || request.headers['x-user-id'];
+    if (userId) {
+      request.userId = userId;
+      return true;
+    }
+
+    throw new UnauthorizedException('Authentication required');
   }
 }
 

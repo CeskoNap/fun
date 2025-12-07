@@ -64,7 +64,8 @@ export class TransfersService {
       throw new BadRequestException('Amount must be positive');
     }
 
-    const amountDec = new Decimal(amount);
+    // Convert to BigInt (round to nearest integer, no decimals)
+    const amountBigInt = BigInt(Math.round(amount));
 
     // Validate sender
     const sender = await this.prisma.user.findUnique({
@@ -110,24 +111,28 @@ export class TransfersService {
 
     const transfersCount = todayTransfers.length;
     const amountSumToday = todayTransfers.reduce(
-      (acc, t) => acc.add(t.amount),
-      new Decimal(0),
+      (acc, t) => acc + (t.amount as bigint),
+      0n,
     );
 
     if (transfersCount >= limits.maxTransfersPerDay) {
       throw new BadRequestException('Daily transfer count limit reached');
     }
 
-    if (amountSumToday.add(amountDec).gt(new Decimal(limits.maxAmountPerDay))) {
+    const maxAmountPerDay = BigInt(Math.round(limits.maxAmountPerDay));
+    if (amountSumToday + amountBigInt > maxAmountPerDay) {
       throw new BadRequestException('Daily transfer amount limit reached');
     }
 
-    // Fee
+    // Fee calculation (using integer math)
     const feePercent = feeCfg.feePercent ?? 0;
-    const feeAmount = feePercent > 0 ? amountDec.mul(feePercent) : new Decimal(0);
-    const netAmount = amountDec.sub(feeAmount);
+    // Calculate fee: amount * feePercent / 100, rounded to nearest integer
+    const feeAmount = feePercent > 0 
+      ? BigInt(Math.round(Number(amountBigInt) * feePercent / 100))
+      : 0n;
+    const netAmount = amountBigInt - feeAmount;
 
-    if (netAmount.lte(0)) {
+    if (netAmount <= 0n) {
       throw new BadRequestException('Net amount must be positive');
     }
 
@@ -137,12 +142,13 @@ export class TransfersService {
       const balance = await tx.userBalance.findUnique({
         where: { userId: fromUserId },
       });
-      if (!balance || balance.balance.lt(amountDec)) {
+      const balanceAmount = balance?.balance as bigint || 0n;
+      if (!balance || balanceAmount < amountBigInt) {
         throw new BadRequestException('Insufficient balance');
       }
 
       // Debit sender
-      const senderBalanceAfter = balance.balance.sub(amountDec);
+      const senderBalanceAfter = balanceAmount - amountBigInt;
 
       const updatedSenderBalance = await tx.userBalance.update({
         where: { userId: fromUserId },
@@ -155,9 +161,9 @@ export class TransfersService {
         data: {
           userId: fromUserId,
           type: TransactionType.TOKEN_TRANSFER_SENT,
-          amount: amountDec.neg(),
-          balanceBefore: balance.balance,
-          balanceAfter: updatedSenderBalance.balance,
+          amount: -amountBigInt, // Negative for debit
+          balanceBefore: balanceAmount,
+          balanceAfter: updatedSenderBalance.balance as bigint,
           metadata: {
             toUserId: recipient.id,
             toUsername,
@@ -173,7 +179,8 @@ export class TransfersService {
         throw new Error('Recipient balance not found');
       }
 
-      const recipientBalanceAfter = recipientBalance.balance.add(netAmount);
+      const recipientBalanceAmount = recipientBalance.balance as bigint;
+      const recipientBalanceAfter = recipientBalanceAmount + netAmount;
       const updatedRecipientBalance = await tx.userBalance.update({
         where: { userId: recipient.id },
         data: {
@@ -186,8 +193,8 @@ export class TransfersService {
           userId: recipient.id,
           type: TransactionType.TOKEN_TRANSFER_RECEIVED,
           amount: netAmount,
-          balanceBefore: recipientBalance.balance,
-          balanceAfter: updatedRecipientBalance.balance,
+          balanceBefore: recipientBalanceAmount,
+          balanceAfter: updatedRecipientBalance.balance as bigint,
           metadata: {
             fromUserId,
             fromUsername: sender.username,
@@ -196,12 +203,13 @@ export class TransfersService {
       });
 
       // Optional house fee
-      if (feeAmount.gt(0) && feeCfg.houseUserId) {
+      if (feeAmount > 0n && feeCfg.houseUserId) {
         const houseBalance = await tx.userBalance.findUnique({
           where: { userId: feeCfg.houseUserId },
         });
         if (houseBalance) {
-          const houseAfter = houseBalance.balance.add(feeAmount);
+          const houseBalanceAmount = houseBalance.balance as bigint;
+          const houseAfter = houseBalanceAmount + feeAmount;
           await tx.userBalance.update({
             where: { userId: feeCfg.houseUserId },
             data: { balance: houseAfter },
@@ -211,7 +219,7 @@ export class TransfersService {
               userId: feeCfg.houseUserId,
               type: TransactionType.ADMIN_ADJUSTMENT,
               amount: feeAmount,
-              balanceBefore: houseBalance.balance,
+              balanceBefore: houseBalanceAmount,
               balanceAfter: houseAfter,
               metadata: {
                 source: 'transfer_fee',
@@ -227,7 +235,7 @@ export class TransfersService {
         data: {
           fromUserId,
           toUserId: recipient.id,
-          amount: amountDec,
+          amount: amountBigInt,
           day: serverDay,
           ipAddress,
           userAgent,
@@ -235,9 +243,9 @@ export class TransfersService {
       });
 
       return {
-        fromBalance: updatedSenderBalance.balance,
+        fromBalance: updatedSenderBalance.balance as bigint,
         toUsername,
-        amount: amountDec,
+        amount: amountBigInt,
         fee: feeAmount,
         netAmount,
       };

@@ -81,7 +81,7 @@ export default function RewardsPage() {
       setDaily(data);
       addToast({
         type: "success",
-        message: `Daily reward: +${data.amount} FUN`,
+        message: `Daily reward: +${Math.round(parseFloat(data.amount)).toLocaleString()} FUN`,
       });
     } catch (e: any) {
       if (e instanceof ApiError) {
@@ -109,7 +109,7 @@ export default function RewardsPage() {
       });
       addToast({
         type: "success",
-        message: `Faucet: +${data.amount} FUN`,
+        message: `Faucet: +${Math.round(parseFloat(data.amount)).toLocaleString()} FUN`,
       });
     } catch (e: any) {
       if (e instanceof ApiError) {
@@ -140,7 +140,7 @@ export default function RewardsPage() {
       });
       addToast({
         type: "success",
-        message: `Ad reward: +${data.amount} FUN`,
+        message: `Ad reward: +${Math.round(parseFloat(data.amount)).toLocaleString()} FUN`,
       });
     } catch (e: any) {
       if (e instanceof ApiError) {
@@ -196,7 +196,7 @@ export default function RewardsPage() {
       }
       addToast({
         type: "success",
-        message: `Quiz reward: +${data.amount} FUN`,
+        message: `Quiz reward: +${Math.round(parseFloat(data.amount)).toLocaleString()} FUN`,
       });
     } catch (e: any) {
       if (e instanceof ApiError) {
@@ -230,7 +230,7 @@ export default function RewardsPage() {
           </button>
           {daily && (
             <div className="text-sm text-zinc-300 space-y-1">
-              <div>Amount: {daily.amount} FUN</div>
+              <div>Amount: {Math.round(parseFloat(daily.amount)).toLocaleString()} FUN</div>
               <div>Streak: {daily.streak} days</div>
               <div>Level at claim: {daily.level}</div>
             </div>
@@ -252,7 +252,7 @@ export default function RewardsPage() {
           </button>
           {faucet && (
             <div className="text-sm text-zinc-300 space-y-1">
-              <div>Amount: {faucet.amount} FUN</div>
+              <div>Amount: {Math.round(parseFloat(faucet.amount)).toLocaleString()} FUN</div>
               <div>
                 Claims today: {faucet.claimsToday} / {faucet.dailyLimit}
               </div>
@@ -279,7 +279,7 @@ export default function RewardsPage() {
           </button>
           {ads && (
             <div className="text-sm text-zinc-300 space-y-1">
-              <div>Amount: {ads.amount} FUN</div>
+              <div>Amount: {Math.round(parseFloat(ads.amount)).toLocaleString()} FUN</div>
               <div>
                 This hour: {ads.adsThisHour} / {ads.hourlyLimit}
               </div>
@@ -345,7 +345,7 @@ export default function RewardsPage() {
           {quizResult && (
             <div className="space-y-2 text-sm text-zinc-300">
               <div>Correct answers: {quizResult.correctCount} / 3</div>
-              <div>Reward: {quizResult.amount} FUN</div>
+              <div>Reward: {Math.round(parseFloat(quizResult.amount)).toLocaleString()} FUN</div>
               <div className="mt-2 space-y-1">
                 {quizResult.questions.map((q, idx) => (
                   <div key={q.questionId}>

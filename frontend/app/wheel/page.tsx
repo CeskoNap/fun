@@ -65,7 +65,7 @@ export default function WheelPage() {
       if (data.rewardType === "token" && parseFloat(data.amount) > 0) {
         addToast({
           type: "success",
-          message: `Wheel: +${data.amount} FUN`,
+          message: `Wheel: +${Math.round(parseFloat(data.amount)).toLocaleString()} FUN`,
         });
       } else if (data.rewardType === "xp" && parseFloat(data.xpAmount) > 0) {
         addToast({
@@ -151,7 +151,7 @@ export default function WheelPage() {
               {lastResult.rewardType}
             </div>
             <div className="text-xs text-zinc-400">
-              Token: {lastResult.amount} FUN • XP: {lastResult.xpAmount}
+              Token: {Math.round(parseFloat(lastResult.amount || "0")).toLocaleString()} FUN • XP: {lastResult.xpAmount}
             </div>
           </div>
         )}

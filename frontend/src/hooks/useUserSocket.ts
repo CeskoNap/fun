@@ -61,7 +61,7 @@ export function useUserSocket() {
       (payload: { type: string; amount: string }) => {
         addToast({
           type: "success",
-          message: `Reward claimed (${payload.type}): +${payload.amount} FUN`,
+          message: `Reward claimed (${payload.type}): +${Math.round(parseFloat(payload.amount)).toLocaleString()} FUN`,
         });
       }
     );
@@ -77,12 +77,12 @@ export function useUserSocket() {
         if (payload.status === "WON") {
           addToast({
             type: "success",
-            message: `You won ${payload.payout} FUN on ${payload.gameType}.`,
+            message: `You won ${Math.round(parseFloat(payload.payout)).toLocaleString()} FUN on ${payload.gameType}.`,
           });
         } else {
           addToast({
             type: "info",
-            message: `You lost ${payload.amount} FUN on ${payload.gameType}.`,
+            message: `You lost ${Math.round(parseFloat(payload.amount)).toLocaleString()} FUN on ${payload.gameType}.`,
           });
         }
       }

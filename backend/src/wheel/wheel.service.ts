@@ -133,19 +133,20 @@ export class WheelService {
     const idx = this.pickSegmentIndex(data.segments, data.weights, userId);
     const segment = data.segments[idx];
 
-    let tokenAmount = new Decimal(0);
+    let tokenAmount: bigint = 0n;
     let xpAmount = new Decimal(0);
 
     if (segment.type === 'token' && segment.amount && segment.amount > 0) {
-      tokenAmount = new Decimal(segment.amount);
+      // Convert to BigInt (round to nearest integer, no decimals)
+      tokenAmount = BigInt(Math.round(segment.amount));
     } else if (segment.type === 'xp' && segment.amount && segment.amount > 0) {
       xpAmount = new Decimal(segment.amount);
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
-      let finalBalance: Decimal | null = null;
+      let finalBalance: bigint | null = null;
 
-      if (tokenAmount.gt(0)) {
+      if (tokenAmount > 0n) {
         const balanceResult = await updateUserBalance(
           tx,
           userId,
@@ -168,7 +169,7 @@ export class WheelService {
           day: serverDay,
           segment: idx,
           rewardType: segment.type,
-          amount: tokenAmount.gt(0) ? tokenAmount : null,
+          amount: tokenAmount > 0n ? tokenAmount : null,
           xpAmount: xpAmount.gt(0) ? xpAmount : null,
         },
       });
@@ -180,8 +181,8 @@ export class WheelService {
       this.websocket.emitBalanceUpdate(userId, result.finalBalance.toString());
     }
 
-    if (tokenAmount.gt(0)) {
-      this.websocket.emitRewardClaimed(userId, 'wheel_token', tokenAmount.toFixed(8));
+    if (tokenAmount > 0n) {
+      this.websocket.emitRewardClaimed(userId, 'wheel_token', tokenAmount.toString());
     }
     if (xpAmount.gt(0)) {
       this.websocket.emitRewardClaimed(userId, 'wheel_xp', xpAmount.toFixed(2));
@@ -190,7 +191,7 @@ export class WheelService {
     return {
       segmentIndex: idx,
       rewardType: segment.type,
-      amount: tokenAmount.toFixed(8),
+      amount: tokenAmount.toString(),
       xpAmount: xpAmount.toFixed(2),
       spinsToday: todaySpins.length + 1,
       maxSpinsPerDay,

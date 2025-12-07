@@ -131,7 +131,7 @@ export default function MinesPage() {
         <div className="text-xs text-zinc-400">
           Current balance:{" "}
           <span className="text-accent font-semibold">
-            {balance.toFixed(8)} FUN
+            {Math.round(balance).toLocaleString()} FUN
           </span>
         </div>
 
@@ -155,11 +155,11 @@ export default function MinesPage() {
                 {result.status}
               </span>
             </div>
-            <div>Payout: {result.payout} FUN</div>
+            <div>Payout: {Math.round(parseFloat(result.payout || "0")).toLocaleString()} FUN</div>
             <div>Multiplier: x{result.multiplier}</div>
             <div>XP earned: {result.xpEarned}</div>
             <div>New level: {result.newLevel} (+{result.levelsGained})</div>
-            <div>New balance: {result.balance} FUN</div>
+            <div>New balance: {Math.round(parseFloat(result.balance || "0")).toLocaleString()} FUN</div>
             <div className="mt-2">
               <div className="font-semibold mb-1">Game data (one-shot Mines)</div>
               <div className="text-zinc-300">

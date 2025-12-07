@@ -115,34 +115,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Additional Info Section (if logged in) */}
-      {isLoggedIn && (
-        <section className="max-w-7xl mx-auto px-4 py-8">
-          <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-6">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <div>
-                <h3 className="text-xl font-semibold text-white mb-2">
-                  {t("home.title")}
-                </h3>
-                <p className="text-zinc-400 text-sm">{t("home.subtitle")}</p>
-              </div>
-              <div className="flex items-center gap-6">
-                <div className="text-center">
-                  <div className="text-xs text-zinc-400 mb-1">{t("home.balance")}</div>
-                  <div className="text-2xl font-bold text-accent">
-                    {balance.toFixed(8)} FUN
-                  </div>
-                </div>
-                <div className="text-center">
-                  <div className="text-xs text-zinc-400 mb-1">{t("home.level")}</div>
-                  <div className="text-2xl font-bold text-white">#{level}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}

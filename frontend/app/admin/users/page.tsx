@@ -212,7 +212,7 @@ export default function AdminUsersPage() {
                         {user.role}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-accent font-semibold">{parseFloat(user.balance).toFixed(8)} FUN</td>
+                    <td className="px-4 py-3 text-accent font-semibold">{Math.round(parseFloat(user.balance)).toLocaleString()} FUN</td>
                     <td className="px-4 py-3 text-white">#{user.level}</td>
                     <td className="px-4 py-3">
                       {user.isBanned ? (

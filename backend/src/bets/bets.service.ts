@@ -43,7 +43,8 @@ export class BetsService {
       throw new BadRequestException('Bet amount must be positive');
     }
 
-    const amount = new Decimal(amountNumber);
+    // Convert to BigInt (round to nearest integer, no decimals)
+    const amount = BigInt(Math.round(amountNumber));
 
     const game = await this.prisma.game.findUnique({
       where: { type: gameType },
@@ -53,19 +54,23 @@ export class BetsService {
       throw new BadRequestException('Game not available');
     }
 
-    if (amount.lt(game.minBet)) {
-      throw new BadRequestException(`Amount below minimum bet (${game.minBet.toString()})`);
+    const minBet = game.minBet as bigint;
+    const maxBet = game.maxBet as bigint | null;
+
+    if (amount < minBet) {
+      throw new BadRequestException(`Amount below minimum bet (${minBet.toString()})`);
     }
 
-    if (game.maxBet && amount.gt(game.maxBet)) {
-      throw new BadRequestException(`Amount above maximum bet (${game.maxBet.toString()})`);
+    if (maxBet && amount > maxBet) {
+      throw new BadRequestException(`Amount above maximum bet (${maxBet.toString()})`);
     }
 
     const balance = await this.prisma.userBalance.findUnique({
       where: { userId },
     });
 
-    if (!balance || balance.balance.lt(amount)) {
+    const balanceAmount = balance?.balance as bigint || 0n;
+    if (!balance || balanceAmount < amount) {
       throw new BadRequestException('Insufficient balance');
     }
 
@@ -73,11 +78,11 @@ export class BetsService {
     const effectiveClientSeed = clientSeed || `auto-${userId}`;
     const nonce = await this.getNextNonceForUser(userId);
 
-    // Debit bet amount
+    // Debit bet amount (negative for debit)
     const debitResult = await updateUserBalance(
       this.prisma,
       userId,
-      amount.neg(),
+      -amount,
       TransactionType.BET,
       { gameType, nonce },
     );
@@ -106,7 +111,7 @@ export class BetsService {
     );
 
     let creditResult = null;
-    if (payout.gt(0)) {
+    if (payout > 0n) {
       creditResult = await updateUserBalance(
         this.prisma,
         userId,
@@ -146,7 +151,7 @@ export class BetsService {
     // Achievements check for bet events
     await this.achievementsService.checkForAchievements(userId, {
       event: 'BET_PLACED',
-      amount,
+      amount: Number(amount), // Convert BigInt to number for achievements
     });
 
     const finalBalance = creditResult?.balanceAfter ?? debitResult.balanceAfter;
@@ -190,7 +195,7 @@ export class BetsService {
   ): Promise<{
     status: BetStatus;
     multiplier: number;
-    payout: Decimal;
+    payout: bigint; // Payout as BigInt (no decimals)
     gameData: any;
   }> {
     if (gameType === GameType.MINES) {
@@ -215,8 +220,8 @@ export class BetsService {
       );
 
       const multiplier = result.finalMultiplier;
-      const amountDec = new Decimal(amount);
-      const payout = amountDec.mul(multiplier);
+      // Calculate payout as BigInt (round to nearest integer, no decimals)
+      const payout = BigInt(Math.round(amount * multiplier));
       const status = multiplier > 0 ? BetStatus.WON : BetStatus.LOST;
 
       return {
@@ -247,8 +252,8 @@ export class BetsService {
       );
 
       const multiplier = result.finalMultiplier;
-      const amountDec = new Decimal(amount);
-      const payout = amountDec.mul(multiplier);
+      // Calculate payout as BigInt (round to nearest integer, no decimals)
+      const payout = BigInt(Math.round(amount * multiplier));
       const status = multiplier > 0 ? BetStatus.WON : BetStatus.LOST;
 
       return {

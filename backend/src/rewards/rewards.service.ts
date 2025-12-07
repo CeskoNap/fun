@@ -59,7 +59,7 @@ export class RewardsService {
       throw new NotFoundException('Daily reward configuration not found');
     }
 
-    const config = rewardConfig.config as DailyRewardConfig;
+    const config = rewardConfig.config as unknown as DailyRewardConfig;
 
     // Calculate streak
     const streak = await this.calculateStreak(userId);
@@ -74,7 +74,8 @@ export class RewardsService {
     // Apply min/max caps
     reward = Math.max(config.minDailyReward, Math.min(config.maxDailyReward, reward));
 
-    const rewardAmount = new Decimal(reward);
+    // Convert to BigInt (round to nearest integer, no decimals)
+    const rewardAmount = BigInt(Math.round(reward));
 
     // Update balance atomically
     const balanceResult = await updateUserBalance(
@@ -107,7 +108,7 @@ export class RewardsService {
     this.websocketGateway.emitBalanceUpdate(userId, balanceResult.balanceAfter.toString());
 
     return {
-      amount: rewardAmount,
+      amount: Number(rewardAmount),
       streak,
       level,
     };
@@ -170,7 +171,7 @@ export class RewardsService {
       throw new NotFoundException('Faucet configuration not found');
     }
 
-    const config = rewardConfig.config as FaucetRewardConfig;
+    const config = rewardConfig.config as unknown as FaucetRewardConfig;
 
     // Check last claim
     const lastClaim = await this.prisma.hourlyFaucet.findFirst({
@@ -213,7 +214,8 @@ export class RewardsService {
     let reward = config.baseFaucet + (level * config.faucetMultiplier);
     reward = Math.max(config.minFaucetReward, Math.min(config.maxFaucetReward, reward));
 
-    const rewardAmount = new Decimal(reward);
+    // Convert to BigInt (round to nearest integer, no decimals)
+    const rewardAmount = BigInt(Math.round(reward));
 
     // Update balance
     const balanceResult = await updateUserBalance(
@@ -246,7 +248,7 @@ export class RewardsService {
     const nextAvailable = new Date(currentHour.getTime() + 60 * 60 * 1000);
 
     return {
-      amount: rewardAmount,
+      amount: Number(rewardAmount),
       nextAvailableAt: nextAvailable,
       claimsToday: claimsToday + 1,
       dailyLimit: config.dailyFaucetClaimsLimit,
@@ -308,7 +310,8 @@ export class RewardsService {
       );
     }
 
-    const rewardAmount = adConfig.rewardAmount;
+    // rewardAmount is already BigInt from database
+    const rewardAmount = adConfig.rewardAmount as bigint;
 
     // Update balance
     const balanceResult = await updateUserBalance(
@@ -341,7 +344,7 @@ export class RewardsService {
     this.websocketGateway.emitBalanceUpdate(userId, balanceResult.balanceAfter.toString());
 
     return {
-      amount: rewardAmount,
+      amount: Number(rewardAmount),
       adsThisHour: adsThisHour + 1,
       adsToday: adsToday + 1,
       hourlyLimit: adConfig.adsPerHourLimit,
@@ -443,7 +446,7 @@ export class RewardsService {
           questionIds: questionIds as any,
           answers: [],
           correctCount: 0,
-          amount: new Decimal(0),
+          amount: 0n,
         },
       });
     }
@@ -545,8 +548,10 @@ export class RewardsService {
       throw new NotFoundException('Quiz reward configuration not found');
     }
 
-    const config = rewardConfig.config as QuizRewardConfig;
-    const rewardAmount = new Decimal(config.rewards[correctCount.toString() as '0' | '1' | '2' | '3'] || 0);
+    const config = rewardConfig.config as unknown as QuizRewardConfig;
+    const rewardValue = config.rewards[correctCount.toString() as '0' | '1' | '2' | '3'] || 0;
+    // Convert to BigInt (round to nearest integer, no decimals)
+    const rewardAmount = BigInt(Math.round(rewardValue));
 
     // Update balance
     const balanceResult = await updateUserBalance(
@@ -573,14 +578,14 @@ export class RewardsService {
     });
 
     // Emit WebSocket event
-    if (rewardAmount.gt(0)) {
+    if (rewardAmount > 0n) {
       this.websocketGateway.emitRewardClaimed(userId, 'quiz', rewardAmount.toString());
       this.websocketGateway.emitBalanceUpdate(userId, balanceResult.balanceAfter.toString());
     }
 
     return {
       correctCount,
-      amount: rewardAmount,
+      amount: Number(rewardAmount),
       questions: questionResults,
     };
   }

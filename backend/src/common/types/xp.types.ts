@@ -13,7 +13,7 @@ export interface LevelConfig {
   id: string;
   level: number;
   xpRequired: Decimal; // Cumulative XP from level 1
-  reward: Decimal | null; // FUN reward on level up
+  reward: bigint | null; // FUN reward on level up (as integer, no decimals)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,7 +32,7 @@ export interface XpEarnedResult {
   levelsGained: number;
   levelUpRewards: Array<{
     level: number;
-    amount: Decimal;
+    amount: bigint; // FUN reward as integer (no decimals)
   }>;
   totalXp: Decimal;
 }

@@ -28,7 +28,7 @@ export class RacesService {
       cfg = await this.prisma.raceConfig.create({
         data: {
           name: 'default',
-          entryFee: new Decimal(100),
+          entryFee: 100n,
           prizeDistribution: {
             topPercentageWinners: 25,
             tiers: [
@@ -93,7 +93,7 @@ export class RacesService {
       throw new NotFoundException('Race not found');
     }
 
-    if (![RaceStatus.UPCOMING, RaceStatus.ACTIVE].includes(race.status)) {
+    if (race.status !== RaceStatus.UPCOMING && race.status !== RaceStatus.ACTIVE) {
       throw new BadRequestException('Race not open for joining');
     }
 
@@ -118,7 +118,9 @@ export class RacesService {
 
     // Get entry fee from config / race
     const cfg = await this.getDefaultRaceConfig();
-    const entryFee = cfg.entryFee ?? race.entryFee ?? new Decimal(100);
+    const raceEntryFee = race.entryFee as bigint;
+    const cfgEntryFee = cfg.entryFee as bigint | null;
+    const entryFee = cfgEntryFee ?? raceEntryFee ?? 100n;
 
     // Atomic: debit entryFee, inc prizePool, create RaceParticipant
     const result = await this.prisma.$transaction(async (tx) => {
@@ -126,12 +128,13 @@ export class RacesService {
       const balance = await tx.userBalance.findUnique({
         where: { userId },
       });
-      if (!balance || balance.balance.lt(entryFee)) {
+      const balanceAmount = balance?.balance as bigint || 0n;
+      if (!balance || balanceAmount < entryFee) {
         throw new BadRequestException('Insufficient balance for race entry');
       }
 
-      const balanceBefore = balance.balance;
-      const balanceAfter = balanceBefore.sub(entryFee);
+      const balanceBefore = balanceAmount;
+      const balanceAfter = balanceBefore - entryFee;
 
       const updatedBalance = await tx.userBalance.update({
         where: { userId },
@@ -144,9 +147,9 @@ export class RacesService {
         data: {
           userId,
           type: TransactionType.RACE_ENTRY,
-          amount: entryFee.neg(),
+          amount: -entryFee, // Negative for debit
           balanceBefore,
-          balanceAfter: updatedBalance.balance,
+          balanceAfter: updatedBalance.balance as bigint,
           metadata: {
             raceId: race.id,
           },
@@ -154,10 +157,11 @@ export class RacesService {
       });
 
       // Update prize pool
+      const prizePool = race.prizePool as bigint;
       const updatedRace = await tx.race.update({
         where: { id: race.id },
         data: {
-          prizePool: race.prizePool.add(entryFee),
+          prizePool: prizePool + entryFee,
         },
       });
 
@@ -166,15 +170,15 @@ export class RacesService {
         data: {
           raceId: race.id,
           userId,
-          volume: new Decimal(0),
+          volume: 0n,
           xpEarned: new Decimal(0),
         },
       });
 
       return {
         entryFee,
-        prizePool: updatedRace.prizePool,
-        balanceAfter: updatedBalance.balance,
+        prizePool: updatedRace.prizePool as bigint,
+        balanceAfter: updatedBalance.balance as bigint,
       };
     });
 
@@ -219,7 +223,7 @@ export class RacesService {
   async handleBetForRaces(
     userId: string,
     gameType: GameType,
-    betAmount: Decimal,
+    betAmount: bigint, // Bet amount as integer (no decimals)
   ) {
     // Find active races that apply to this game type
     const activeRaces = await this.prisma.race.findMany({
@@ -247,10 +251,11 @@ export class RacesService {
         const participant = race.participants[0];
         if (!participant) continue;
 
+        const currentVolume = participant.volume as bigint;
         await tx.raceParticipant.update({
           where: { id: participant.id },
           data: {
-            volume: participant.volume.add(betAmount),
+            volume: currentVolume + betAmount,
           },
         });
       }
@@ -278,11 +283,12 @@ export class RacesService {
     }
 
     const cfg = await this.getDefaultRaceConfig();
-    const dist = cfg.prizeDistribution as PrizeDistributionConfig;
+    const dist = cfg.prizeDistribution as unknown as PrizeDistributionConfig;
 
     const participants = race.participants;
     const totalParticipants = participants.length;
-    if (totalParticipants === 0 || race.prizePool.lte(0)) {
+    const prizePoolCheck = race.prizePool as bigint;
+    if (totalParticipants === 0 || prizePoolCheck <= 0n) {
       // No participants or no prize pool, just mark as ENDED
       await this.prisma.race.update({
         where: { id: race.id },
@@ -295,8 +301,8 @@ export class RacesService {
       (totalParticipants * (dist.topPercentageWinners ?? 25)) / 100,
     );
 
-    const winners: { index: number; prize: Decimal }[] = [];
-    const prizePool = race.prizePool;
+    const winners: { index: number; prize: bigint }[] = [];
+    const prizePool = race.prizePool as bigint;
 
     for (const tier of dist.tiers) {
       let { rankStart, rankEnd, percentage } = tier;
@@ -305,8 +311,10 @@ export class RacesService {
       if (rankStart > rankEnd) continue;
 
       const countInTier = rankEnd - rankStart + 1;
-      const tierPool = prizePool.mul(percentage).div(100);
-      const prizePerUser = tierPool.div(countInTier);
+      // Calculate tier pool: prizePool * percentage / 100 (using integer math)
+      const tierPool = (prizePool * BigInt(percentage)) / 100n;
+      // Calculate prize per user: tierPool / countInTier (rounded down)
+      const prizePerUser = tierPool / BigInt(countInTier);
 
       for (let rank = rankStart; rank <= rankEnd; rank++) {
         const idx = rank - 1;
@@ -320,7 +328,7 @@ export class RacesService {
         const participant = participants[i];
         const winner = winners.find((w) => w.index === i);
 
-        let prize = new Decimal(0);
+        let prize: bigint = 0n;
         if (winner) {
           prize = winner.prize;
 
@@ -328,8 +336,8 @@ export class RacesService {
             where: { userId: participant.userId },
           });
           if (balance) {
-            const before = balance.balance;
-            const after = before.add(prize);
+            const before = balance.balance as bigint;
+            const after = before + prize;
             await tx.userBalance.update({
               where: { userId: participant.userId },
               data: { balance: after },
@@ -351,7 +359,7 @@ export class RacesService {
           where: { id: participant.id },
           data: {
             rank: i + 1,
-            prize: prize.gt(0) ? prize : null,
+            prize: prize > 0n ? prize : null,
           },
         });
       }

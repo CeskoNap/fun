@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, UseGuards, CurrentUser } from '@nestjs/common';
+import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { RacesService } from './races.service';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { CurrentUser as CU } from '../common/decorators/user.decorator';

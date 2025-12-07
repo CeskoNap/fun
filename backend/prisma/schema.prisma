@@ -59,8 +59,8 @@ model User {
   ageConfirmedAt   DateTime?
 
   // Responsible Gaming (structure for future)
-  betLimitDaily    Decimal? @db.Decimal(20, 8)
-  betLimitWeekly   Decimal? @db.Decimal(20, 8)
+  betLimitDaily    BigInt?  // Daily bet limit as integer (no decimals)
+  betLimitWeekly   BigInt?  // Weekly bet limit as integer (no decimals)
   selfExclusionUntil DateTime?
 
   // Relations
@@ -122,8 +122,8 @@ model LoginLog {
 model UserBalance {
   id            String   @id @default(uuid())
   userId        String   @unique
-  balance       Decimal  @default(0) @db.Decimal(20, 8) // 8 decimals like token
-  lockedBalance Decimal  @default(0) @db.Decimal(20, 8) // For active bets
+  balance       BigInt   @default(0) // Token amount as integer (no decimals)
+  lockedBalance BigInt   @default(0) // For active bets
   version       Int      @default(0) // Optimistic locking
   updatedAt     DateTime @updatedAt
 
@@ -156,9 +156,9 @@ model Transaction {
   id           String          @id @default(uuid())
   userId       String
   type         TransactionType
-  amount       Decimal         @db.Decimal(20, 8) // Positive for credits, negative for debits
-  balanceBefore Decimal        @db.Decimal(20, 8)
-  balanceAfter  Decimal        @db.Decimal(20, 8)
+  amount       BigInt          // Positive for credits, negative for debits (no decimals)
+  balanceBefore BigInt         // Balance before transaction (no decimals)
+  balanceAfter  BigInt         // Balance after transaction (no decimals)
   metadata     Json?           // Additional data (game ID, bet ID, etc.)
   createdAt    DateTime        @default(now())
 
@@ -209,7 +209,7 @@ model LevelUpReward {
   id        String   @id @default(uuid())
   userId    String
   level     Int
-  amount    Decimal  @db.Decimal(20, 8)
+  amount    BigInt   // Token amount as integer (no decimals)
   claimedAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -227,7 +227,7 @@ model DailyReward {
   userId    String
   day       DateTime // Date based on server time (reset at 02:00)
   level     Int       // User's level at claim time
-  amount    Decimal   @db.Decimal(20, 8)
+  amount    BigInt    // Token amount as integer (no decimals)
   streak    Int?      // Current streak days
   ipAddress String?
   userAgent String?
@@ -245,7 +245,7 @@ model HourlyFaucet {
   userId    String
   hour      DateTime // Hour window (server time)
   day       DateTime // Day based on server time (reset at 02:00)
-  amount    Decimal   @db.Decimal(20, 8)
+  amount    BigInt    // Token amount as integer (no decimals)
   ipAddress String?
   userAgent String?
   claimedAt DateTime @default(now())
@@ -263,7 +263,7 @@ model AdReward {
   hour      DateTime // Hour window (server time)
   day       DateTime // Logical day based on server time (reset at 02:00)
   provider  String?  // Ad provider (AdMob, etc.)
-  amount    Decimal   @db.Decimal(20, 8)
+  amount    BigInt    // Token amount as integer (no decimals)
   ipAddress String?
   userAgent String?
   rewardedAt DateTime @default(now())
@@ -316,7 +316,7 @@ model QuizAttempt {
   questionIds     Json     // Array of 3 question IDs
   answers         Json     // Array of answer indices [0, 1, 2]
   correctCount    Int
-  amount          Decimal   @db.Decimal(20, 8)
+  amount          BigInt    // Token amount as integer (no decimals)
   ipAddress       String?
   userAgent       String?
   completedAt     DateTime @default(now())
@@ -336,7 +336,7 @@ model TokenTransfer {
   id        String   @id @default(uuid())
   fromUserId String
   toUserId   String
-  amount    Decimal   @db.Decimal(20, 8)
+  amount    BigInt    // Token amount as integer (no decimals)
   day       DateTime? // For daily limits tracking
   ipAddress String?
   userAgent String?
@@ -376,8 +376,8 @@ model Game {
   name        String
   isActive    Boolean  @default(true)
   houseEdge   Decimal  @db.Decimal(5, 4) // e.g., 0.0150 for 1.5%
-  minBet      Decimal  @db.Decimal(20, 8)
-  maxBet      Decimal? @db.Decimal(20, 8)
+  minBet      BigInt   // Minimum bet as integer (no decimals)
+  maxBet      BigInt?  // Maximum bet as integer (no decimals)
   config      Json?    // Game-specific configuration
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -392,8 +392,8 @@ model Bet {
   id            String    @id @default(uuid())
   userId        String
   gameId        String
-  amount        Decimal   @db.Decimal(20, 8)
-  payout        Decimal?  @db.Decimal(20, 8) // Null if lost
+  amount        BigInt     // Bet amount as integer (no decimals)
+  payout        BigInt?   // Payout amount as integer (no decimals), null if lost
   multiplier    Decimal?  @db.Decimal(10, 4) // Game result (e.g., 2.5x for Crash)
   status        BetStatus @default(PENDING)
   
@@ -440,7 +440,7 @@ model WheelSpin {
   day       DateTime? // If daily limit applies
   segment   Int      // Which segment was hit (0-based index)
   rewardType String  // 'token', 'xp', 'none'
-  amount    Decimal? @db.Decimal(20, 8) // If token reward
+  amount    BigInt?  // Token reward as integer (no decimals), null if not token reward
   xpAmount  Decimal? @db.Decimal(20, 2)  // If XP reward
   spunAt    DateTime @default(now())
 
@@ -555,10 +555,10 @@ model Race {
   description String?
   gameType    GameType?  // If specific to a game, null = all games
   status      RaceStatus @default(UPCOMING)
-  entryFee    Decimal    @db.Decimal(20, 8) // 100 FUN
+  entryFee    BigInt     // Entry fee as integer (no decimals)
   startsAt    DateTime
   endsAt      DateTime
-  prizePool   Decimal    @default(0) @db.Decimal(20, 8)
+  prizePool   BigInt     @default(0) // Prize pool as integer (no decimals)
   config      Json       // Prize distribution config
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -574,10 +574,10 @@ model RaceParticipant {
   id          String   @id @default(uuid())
   raceId      String
   userId      String
-  volume      Decimal  @default(0) @db.Decimal(20, 8) // Total bet volume in race
+  volume      BigInt   @default(0) // Total bet volume in race as integer (no decimals)
   xpEarned    Decimal  @default(0) @db.Decimal(20, 2)
   rank        Int?     // Final rank
-  prize       Decimal? @db.Decimal(20, 8)
+  prize       BigInt?   // Prize amount as integer (no decimals)
   joinedAt    DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -610,7 +610,7 @@ model LevelConfig {
   id          String   @id @default(uuid())
   level       Int      @unique
   xpRequired  Decimal  @db.Decimal(20, 2)
-  reward      Decimal? @db.Decimal(20, 8) // Level-up reward
+  reward      BigInt?  // Level-up reward as integer (no decimals)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -628,7 +628,7 @@ model RewardConfig {
 
 model AdRewardConfig {
   id              String   @id @default(uuid())
-  rewardAmount    Decimal  @db.Decimal(20, 8) // 50 FUN per ad
+  rewardAmount    BigInt   // Reward amount as integer (no decimals)
   adsPerHourLimit Int      @default(5) // Max 5 ads per hour
   dailyAdsCap     Int      @default(30) // Max ads per day (reset 02:00)
   isActive        Boolean  @default(true)
@@ -640,7 +640,7 @@ model AdRewardConfig {
 model RaceConfig {
   id                String   @id @default(uuid())
   name              String   @unique // e.g., 'default', 'weekly', 'monthly'
-  entryFee          Decimal  @db.Decimal(20, 8) // 100 FUN default
+  entryFee          BigInt   // Entry fee as integer (no decimals)
   prizeDistribution Json     // Prize distribution tiers
   isActive          Boolean  @default(true)
   createdAt         DateTime @default(now())

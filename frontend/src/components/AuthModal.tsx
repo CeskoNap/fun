@@ -55,8 +55,9 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
           return;
         }
       } else {
-        if (!formData.email || !formData.email.includes("@")) {
-          setError("Please enter a valid email address");
+        // Login: accept email or username
+        if (!formData.email) {
+          setError("Please enter your email or username");
           setLoading(false);
           return;
         }
@@ -70,7 +71,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
       const url = `${API_BASE}/auth/${mode}`;
       const body = mode === "login"
         ? { 
-            email: formData.email.trim().toLowerCase(), 
+            emailOrUsername: formData.email.trim().toLowerCase(), 
             password: formData.password 
           }
         : {
@@ -192,6 +193,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
                   type="text"
                   required
                   minLength={3}
+                  autoComplete="off"
                   value={formData.username}
                   onChange={(e) =>
                     setFormData({ ...formData, username: e.target.value })
@@ -206,6 +208,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
                 </label>
                 <input
                   type="text"
+                  autoComplete="off"
                   value={formData.displayName}
                   onChange={(e) =>
                     setFormData({ ...formData, displayName: e.target.value })
@@ -219,17 +222,18 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
 
           <div>
             <label className="block text-sm font-medium text-zinc-300 mb-1">
-              Email
+              {mode === "login" ? "Email or Username" : "Email"}
             </label>
             <input
-              type="email"
+              type={mode === "login" ? "text" : "email"}
               required
+              autoComplete="off"
               value={formData.email}
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
               }
               className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-              placeholder="your@email.com"
+              placeholder={mode === "login" ? "your@email.com or username" : "your@email.com"}
             />
           </div>
 
@@ -241,6 +245,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
               type="password"
               required
               minLength={6}
+              autoComplete={mode === "login" ? "off" : "new-password"}
               value={formData.password}
               onChange={(e) =>
                 setFormData({ ...formData, password: e.target.value })

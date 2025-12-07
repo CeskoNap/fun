@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Put, Param, Body, UseGuards, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService, Prisma } from '../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { RacesService } from '../races/races.service';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { AdminGuard } from '../common/guards/admin.guard';
@@ -46,11 +46,12 @@ export class AdminRacesController {
         description: body.description,
         gameType: (body.gameType as any) ?? null,
         status: RaceStatus.UPCOMING,
-        entryFee: cfg?.entryFee ?? new Prisma.Decimal(100),
+        entryFee: (cfg?.entryFee as bigint) ?? 100n,
         startsAt: new Date(body.startsAt),
         endsAt: new Date(body.endsAt),
-        prizePool: new Prisma.Decimal(0),
-      },
+        prizePool: 0n,
+        config: {}, // Required field
+      } as any, // Type assertion to handle Prisma type checking
     });
 
     await this.prisma.adminActionLog.create({

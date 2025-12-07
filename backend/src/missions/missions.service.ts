@@ -33,7 +33,7 @@ export class MissionsService {
     return true;
   }
 
-  async handleBetForMissions(userId: string, gameType: GameType, amount: Decimal) {
+  async handleBetForMissions(userId: string, gameType: GameType, amount: bigint) {
     const now = new Date();
     const missions = await this.prisma.mission.findMany({
       where: {
@@ -44,7 +44,7 @@ export class MissionsService {
     for (const mission of missions) {
       if (!this.isMissionActive(mission, now)) continue;
 
-      const objective = mission.objective as MissionObjective;
+      const objective = mission.objective as unknown as MissionObjective;
       if (objective.gameType && objective.gameType !== gameType) continue;
 
       let userMission = await this.prisma.userMission.findUnique({
@@ -66,8 +66,8 @@ export class MissionsService {
         progress.betCount = (progress.betCount || 0) + 1;
         progress.target = objective.target;
       } else if (objective.type === 'wager_volume') {
-        const current = new Decimal(progress.volume || 0);
-        progress.volume = current.add(amount).toNumber();
+        const current = BigInt(progress.volume || 0);
+        progress.volume = Number(current + amount);
         progress.target = objective.target;
       }
 
@@ -117,7 +117,7 @@ export class MissionsService {
       .filter((m) => this.isMissionActive(m, now))
       .map((m) => {
         const um = byMissionId.get(m.id);
-        const objective = m.objective as MissionObjective;
+        const objective = m.objective as unknown as MissionObjective;
         const reward = m.reward as MissionReward;
 
         const progress = (um?.progress as any) || {};
@@ -155,20 +155,21 @@ export class MissionsService {
     const mission = userMission.mission;
     const reward = mission.reward as MissionReward;
 
-    let tokenReward = new Decimal(0);
+    let tokenReward: bigint = 0n;
     let xpReward = new Decimal(0);
 
     if (reward.tokenAmount && reward.tokenAmount > 0) {
-      tokenReward = new Decimal(reward.tokenAmount);
+      // Convert to BigInt (round to nearest integer, no decimals)
+      tokenReward = BigInt(Math.round(reward.tokenAmount));
     }
     if (reward.xpAmount && reward.xpAmount > 0) {
       xpReward = new Decimal(reward.xpAmount);
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
-      let finalBalance: Decimal | null = null;
+      let finalBalance: bigint | null = null;
 
-      if (tokenReward.gt(0)) {
+      if (tokenReward > 0n) {
         const balance = await updateUserBalance(
           tx,
           userId,
@@ -200,8 +201,8 @@ export class MissionsService {
       this.websocket.emitBalanceUpdate(userId, result.finalBalance.toString());
     }
 
-    if (tokenReward.gt(0)) {
-      this.websocket.emitRewardClaimed(userId, 'mission_token', tokenReward.toFixed(8));
+    if (tokenReward > 0n) {
+      this.websocket.emitRewardClaimed(userId, 'mission_token', tokenReward.toString());
     }
     if (xpReward.gt(0)) {
       this.websocket.emitRewardClaimed(userId, 'mission_xp', xpReward.toFixed(2));
@@ -209,7 +210,7 @@ export class MissionsService {
 
     return {
       missionId,
-      tokenReward: tokenReward.toFixed(8),
+      tokenReward: tokenReward.toString(),
       xpReward: xpReward.toFixed(2),
       status: MissionStatus.REWARDED,
     };

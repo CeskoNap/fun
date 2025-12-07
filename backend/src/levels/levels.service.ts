@@ -57,16 +57,19 @@ export class LevelsService {
    * Calculate XP earned from a bet
    */
   async calculateXPFromBet(
-    betAmount: Decimal,
+    betAmount: bigint | number, // Bet amount as integer (no decimals)
     gameType: GameType,
   ): Promise<Decimal> {
+    // Convert to number for XP calculation
+    const betAmountNum = typeof betAmount === 'bigint' ? Number(betAmount) : betAmount;
+    const betAmountDec = new Decimal(betAmountNum);
     const xpConfig = await this.getXpConfig();
     
     // Get game-specific multiplier
     const gameMultiplier = xpConfig.gameMultipliers[gameType] || 1.0;
     
     // Calculate base XP
-    const baseXP = betAmount
+    const baseXP = betAmountDec
       .mul(gameMultiplier)
       .mul(xpConfig.baseXpRate);
     
@@ -154,7 +157,7 @@ export class LevelsService {
     const levelsGained = newLevel - oldLevel;
 
     // Calculate level-up rewards
-    const levelUpRewards: Array<{ level: number; amount: Decimal }> = [];
+    const levelUpRewards: Array<{ level: number; amount: bigint }> = [];
     
     if (levelsGained > 0) {
       // User gained one or more levels
@@ -163,30 +166,33 @@ export class LevelsService {
         if (levelConfig && levelConfig.reward) {
           levelUpRewards.push({
             level,
-            amount: levelConfig.reward,
+            amount: levelConfig.reward as bigint,
           });
 
-          // Credit level-up reward
-          await updateUserBalance(
-            this.prisma,
-            userId,
-            levelConfig.reward,
-            'LEVEL_UP_REWARD',
-            {
-              level,
-              source,
-              sourceId,
-            },
-          );
-
-          // Log level-up reward
-          await this.prisma.levelUpReward.create({
-            data: {
+          // Credit level-up reward (if exists)
+          const rewardAmount = levelConfig.reward as bigint | null;
+          if (rewardAmount && rewardAmount > 0n) {
+            await updateUserBalance(
+              this.prisma,
               userId,
-              level,
-              amount: levelConfig.reward,
-            },
-          });
+              rewardAmount,
+              'LEVEL_UP_REWARD',
+              {
+                level,
+                source,
+                sourceId,
+              },
+            );
+
+            // Log level-up reward
+            await this.prisma.levelUpReward.create({
+              data: {
+                userId,
+                level,
+                amount: rewardAmount,
+              },
+            });
+          }
         }
       }
     }

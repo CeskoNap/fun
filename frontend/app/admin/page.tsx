@@ -34,30 +34,25 @@ export default function AdminDashboard() {
         return;
       }
 
-      // For now, we'll use a simple approach - in production you'd have a dedicated stats endpoint
-      const usersRes = await fetch(`${API_BASE}/admin/users?limit=1`, {
+      const statsRes = await fetch(`${API_BASE}/admin/stats`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      if (!usersRes.ok) {
-        throw new Error("Failed to load stats");
+      if (!statsRes.ok) {
+        const errorData = await statsRes.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to load stats");
       }
 
-      const usersData = await usersRes.json();
+      const statsData = await statsRes.json();
       
-      // Calculate stats from users data
-      const totalUsers = usersData.pagination?.total || 0;
-      const activeUsers = usersData.users?.filter((u: any) => !u.isBanned).length || 0;
-      const bannedUsers = usersData.users?.filter((u: any) => u.isBanned).length || 0;
-
       setStats({
-        totalUsers,
-        activeUsers,
-        bannedUsers,
-        totalBalance: "0", // Would need a dedicated endpoint
-        totalTransactions: 0, // Would need a dedicated endpoint
+        totalUsers: statsData.totalUsers || 0,
+        activeUsers: statsData.activeUsers || 0,
+        bannedUsers: statsData.bannedUsers || 0,
+        totalBalance: statsData.totalBalance || "0",
+        totalTransactions: statsData.totalTransactions || 0,
       });
     } catch (e: any) {
       setError(e.message || "Failed to load dashboard");
@@ -105,7 +100,7 @@ export default function AdminDashboard() {
         </div>
         <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-6">
           <div className="text-sm text-zinc-400 mb-1">Total Balance</div>
-          <div className="text-3xl font-bold text-accent">{stats?.totalBalance || "0"} FUN</div>
+          <div className="text-3xl font-bold text-accent">{Math.round(parseFloat(stats?.totalBalance || "0")).toLocaleString()} FUN</div>
         </div>
       </div>
 

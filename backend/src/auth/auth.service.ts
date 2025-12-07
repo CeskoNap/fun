@@ -16,7 +16,7 @@ interface RegisterDto {
 }
 
 interface LoginDto {
-  email: string;
+  emailOrUsername: string; // Can be either email or username
   password: string;
 }
 
@@ -141,21 +141,31 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    // Normalize email (lowercase)
-    const normalizedEmail = dto.email.toLowerCase().trim();
+    // Normalize input (lowercase)
+    const normalizedInput = dto.emailOrUsername.toLowerCase().trim();
 
-    // Find user by email (case-insensitive)
+    // Check if input contains @ (email) or not (username)
+    const isEmail = normalizedInput.includes('@');
+
+    // Find user by email or username (case-insensitive)
     const user = await this.prisma.user.findFirst({
-      where: {
-        email: {
-          equals: normalizedEmail,
-          mode: 'insensitive',
-        },
-      },
+      where: isEmail
+        ? {
+            email: {
+              equals: normalizedInput,
+              mode: 'insensitive',
+            },
+          }
+        : {
+            username: {
+              equals: normalizedInput,
+              mode: 'insensitive',
+            },
+          },
     });
 
     if (!user || !user.passwordHash) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('Invalid username/email or password');
     }
 
     // Check if user is banned
@@ -169,7 +179,7 @@ export class AuthService {
     // Verify password
     const isValidPassword = await bcrypt.compare(dto.password, user.passwordHash);
     if (!isValidPassword) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('Invalid username/email or password');
     }
 
     // Create session

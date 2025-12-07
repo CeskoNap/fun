@@ -7,7 +7,7 @@ interface AchievementEvent {
   event: 'LEVEL_UP' | 'BET_PLACED';
   newLevel?: number;
   totalXp?: Decimal;
-  amount?: Decimal;
+  amount?: number | Decimal; // Can be number (for BigInt conversion) or Decimal
 }
 
 @Injectable()
@@ -47,8 +47,8 @@ export class AchievementsService {
             type: 'BET',
           },
         });
-        const volume = stats._sum.amount || new Decimal(0);
-        if (ach.code === 'volume_1m' && volume.gte(new Decimal(1_000_000))) {
+        const volume = (stats._sum.amount as bigint) || 0n;
+        if (ach.code === 'volume_1m' && volume >= 1_000_000n) {
           shouldUnlock = true;
         }
       }

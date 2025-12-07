@@ -29,8 +29,8 @@ class RegisterDto {
 }
 
 class LoginDto {
-  @IsEmail()
-  email: string;
+  @IsString()
+  emailOrUsername: string; // Can be either email or username
 
   @IsString()
   password: string;

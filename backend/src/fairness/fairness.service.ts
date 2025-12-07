@@ -82,7 +82,7 @@ export class FairnessService {
       throw new BadRequestException('No game data stored for this bet');
     }
 
-    const amount = bet.amount.toNumber();
+    const amount = Number(bet.amount as bigint);
     const recomputed: MinesGameData = resolveMinesBet(
       amount,
       bet.serverSeed,
@@ -98,7 +98,7 @@ export class FairnessService {
     const storedMultiplier = bet.multiplier ? bet.multiplier.toNumber() : 0;
     const recomputedMultiplier = recomputed.finalMultiplier;
 
-    const storedPayout = bet.payout ? bet.payout.toNumber() : 0;
+    const storedPayout = bet.payout ? Number(bet.payout as bigint) : 0;
     const recomputedPayout = amount * recomputedMultiplier;
 
     const valid =
@@ -139,7 +139,7 @@ export class FairnessService {
       throw new BadRequestException('No game data stored for this bet');
     }
 
-    const amount = bet.amount.toNumber();
+    const amount = Number(bet.amount as bigint);
     const recomputed: PlinkoGameData = resolvePlinkoBet(
       amount,
       bet.serverSeed,
@@ -154,7 +154,7 @@ export class FairnessService {
     const storedMultiplier = bet.multiplier ? bet.multiplier.toNumber() : 0;
     const recomputedMultiplier = recomputed.finalMultiplier;
 
-    const storedPayout = bet.payout ? bet.payout.toNumber() : 0;
+    const storedPayout = bet.payout ? Number(bet.payout as bigint) : 0;
     const recomputedPayout = amount * recomputedMultiplier;
 
     const valid =
