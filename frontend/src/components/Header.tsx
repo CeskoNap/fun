@@ -96,7 +96,7 @@ export function Header() {
               <div className="hidden sm:flex flex-col items-end justify-center text-xs text-zinc-400">
                 <span className="font-medium text-white" style={{ fontSize: '13px' }}>{username || "User"}</span>
                 <span className="text-sm font-semibold text-accent">
-                  {Math.round(balance).toLocaleString()} FUN
+                  {balance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN
                 </span>
               </div>
 

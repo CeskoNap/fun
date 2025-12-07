@@ -137,3 +137,4 @@ Per la produzione, considera:
 - Configurazione NODE_ENV=production
 - Ottimizzazioni delle immagini Docker
 
+

@@ -51,7 +51,7 @@ export function resolveMinesBet(
   };
 }
 
-function generateMinesPositions(
+export function generateMinesPositions(
   totalCells: number,
   minesCount: number,
   serverSeed: string,
@@ -68,12 +68,12 @@ function generateMinesPositions(
   return Array.from(positions).sort((a, b) => a - b);
 }
 
-function calculateMinesMultiplier(
+export function calculateMinesMultiplier(
   minesCount: number,
   safeRevealed: number,
   maxSafe: number,
 ): number {
-  if (safeRevealed <= 0) return 0;
+  if (safeRevealed <= 0) return 1.0;
   const riskFactor = 1 + minesCount / 5;
   const progress = safeRevealed / maxSafe;
   const progressFactor = 1 + Math.pow(progress, 2) * 5;

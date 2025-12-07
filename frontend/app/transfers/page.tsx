@@ -103,7 +103,7 @@ export default function TransfersPage() {
           </div>
           <div className="text-right text-sm text-zinc-400">
             <div>Balance</div>
-            <div className="text-accent font-semibold">{Math.round(balance).toLocaleString()} FUN</div>
+            <div className="text-accent font-semibold">{balance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN</div>
           </div>
         </div>
 

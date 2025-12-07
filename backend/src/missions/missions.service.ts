@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { GameType, MissionStatus, MissionType, TransactionType } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { getServerDay } from '../common/utils/server-time.util';
-import { updateUserBalance } from '../common/utils/balance.util';
+import { updateUserBalance, fromCentesimi } from '../common/utils/balance.util';
 import { LevelsService } from '../levels/levels.service';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
 
@@ -198,7 +198,7 @@ export class MissionsService {
     });
 
     if (result.finalBalance) {
-      this.websocket.emitBalanceUpdate(userId, result.finalBalance.toString());
+      this.websocket.emitBalanceUpdate(userId, fromCentesimi(result.finalBalance).toFixed(2));
     }
 
     if (tokenReward > 0n) {

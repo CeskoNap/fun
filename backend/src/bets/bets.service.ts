@@ -9,8 +9,9 @@ import { updateUserBalance } from '../common/utils/balance.util';
 import { RacesService } from '../races/races.service';
 import { MissionsService } from '../missions/missions.service';
 import { AchievementsService } from '../achievements/achievements.service';
-import { resolveMinesBet, MinesParams, MinesGameData } from '../games/mines.engine';
+import { resolveMinesBet, MinesParams, MinesGameData, generateMinesPositions, calculateMinesMultiplier } from '../games/mines.engine';
 import { resolvePlinkoBet, PlinkoParams, PlinkoGameData } from '../games/plinko.engine';
+import { toCentesimi, fromCentesimi } from '../common/utils/balance.util';
 
 @Injectable()
 export class BetsService {
@@ -43,8 +44,8 @@ export class BetsService {
       throw new BadRequestException('Bet amount must be positive');
     }
 
-    // Convert to BigInt (round to nearest integer, no decimals)
-    const amount = BigInt(Math.round(amountNumber));
+    // Convert to centesimi (BigInt): amountNumber is in decimal format (e.g., 10.50)
+    const amount = toCentesimi(amountNumber);
 
     const game = await this.prisma.game.findUnique({
       where: { type: gameType },
@@ -58,11 +59,11 @@ export class BetsService {
     const maxBet = game.maxBet as bigint | null;
 
     if (amount < minBet) {
-      throw new BadRequestException(`Amount below minimum bet (${minBet.toString()})`);
+      throw new BadRequestException(`Amount below minimum bet (${fromCentesimi(minBet).toFixed(2)})`);
     }
 
     if (maxBet && amount > maxBet) {
-      throw new BadRequestException(`Amount above maximum bet (${maxBet.toString()})`);
+      throw new BadRequestException(`Amount above maximum bet (${fromCentesimi(maxBet).toFixed(2)})`);
     }
 
     const balance = await this.prisma.userBalance.findUnique({
@@ -87,7 +88,7 @@ export class BetsService {
       { gameType, nonce },
     );
 
-    // Create bet PENDING
+    // Create bet PENDING (for one-shot games)
     const bet = await this.prisma.bet.create({
       data: {
         userId,
@@ -100,10 +101,11 @@ export class BetsService {
       },
     });
 
-    // Resolve game result (placeholder call)
+    // Resolve game result
+    // amount is already in centesimi (BigInt)
     const { status, multiplier, payout, gameData } = await this.resolveGameBet(
       gameType,
-      amountNumber,
+      amount,
       serverSeed,
       effectiveClientSeed,
       nonce,
@@ -160,34 +162,34 @@ export class BetsService {
       betId: bet.id,
       gameType,
       status,
-      payout: payout.toString(),
+      payout: fromCentesimi(payout).toFixed(2),
       multiplier,
       xpEarned: xp.toString(),
       newLevel: xpResult.newLevel,
       levelsGained: xpResult.levelsGained,
-      balance: finalBalance.toString(),
+      balance: fromCentesimi(finalBalance).toFixed(2),
       gameData,
     });
-    this.websocketGateway.emitBalanceUpdate(userId, finalBalance.toString());
+    this.websocketGateway.emitBalanceUpdate(userId, fromCentesimi(finalBalance).toFixed(2));
 
     return {
       betId: bet.id,
       gameType,
       status,
-      amount: amount.toString(),
-      payout: payout.toString(),
+      amount: fromCentesimi(amount).toFixed(2),
+      payout: fromCentesimi(payout).toFixed(2),
       multiplier,
       xpEarned: xp.toString(),
       newLevel: xpResult.newLevel,
       levelsGained: xpResult.levelsGained,
-      balance: finalBalance.toString(),
+      balance: fromCentesimi(finalBalance).toFixed(2),
       gameData,
     };
   }
 
   private async resolveGameBet(
     gameType: GameType,
-    amount: number,
+    amount: bigint, // Amount in centesimi (BigInt)
     serverSeed: string,
     clientSeed: string,
     nonce: number,
@@ -195,7 +197,7 @@ export class BetsService {
   ): Promise<{
     status: BetStatus;
     multiplier: number;
-    payout: bigint; // Payout as BigInt (no decimals)
+    payout: bigint; // Payout in centesimi (BigInt)
     gameData: any;
   }> {
     if (gameType === GameType.MINES) {
@@ -211,8 +213,11 @@ export class BetsService {
         throw new BadRequestException('minesCount must be > 0 and < rows*cols');
       }
 
+      // Convert amount from centesimi to decimal for game engine
+      const amountDecimal = fromCentesimi(amount);
+      
       const result: MinesGameData = resolveMinesBet(
-        amount,
+        amountDecimal,
         serverSeed,
         clientSeed,
         nonce,
@@ -220,8 +225,9 @@ export class BetsService {
       );
 
       const multiplier = result.finalMultiplier;
-      // Calculate payout as BigInt (round to nearest integer, no decimals)
-      const payout = BigInt(Math.round(amount * multiplier));
+      // Calculate payout in decimal, then convert to centesimi
+      const payoutDecimal = amountDecimal * multiplier;
+      const payout = toCentesimi(payoutDecimal);
       const status = multiplier > 0 ? BetStatus.WON : BetStatus.LOST;
 
       return {
@@ -243,8 +249,11 @@ export class BetsService {
         throw new BadRequestException('Invalid risk for Plinko');
       }
 
+      // Convert amount from centesimi to decimal for game engine
+      const amountDecimal = fromCentesimi(amount);
+      
       const result: PlinkoGameData = resolvePlinkoBet(
-        amount,
+        amountDecimal,
         serverSeed,
         clientSeed,
         nonce,
@@ -252,8 +261,9 @@ export class BetsService {
       );
 
       const multiplier = result.finalMultiplier;
-      // Calculate payout as BigInt (round to nearest integer, no decimals)
-      const payout = BigInt(Math.round(amount * multiplier));
+      // Calculate payout in decimal, then convert to centesimi
+      const payoutDecimal = amountDecimal * multiplier;
+      const payout = toCentesimi(payoutDecimal);
       const status = multiplier > 0 ? BetStatus.WON : BetStatus.LOST;
 
       return {
@@ -265,6 +275,378 @@ export class BetsService {
     }
 
     throw new BadRequestException('Unsupported game type');
+  }
+
+  // Start interactive Mines game
+  async startMinesBet(
+    userId: string,
+    amountNumber: number,
+    rows: number,
+    cols: number,
+    minesCount: number,
+    clientSeed?: string,
+  ) {
+    if (amountNumber <= 0) {
+      throw new BadRequestException('Bet amount must be positive');
+    }
+
+    // Convert to centesimi (BigInt): amountNumber is in decimal format (e.g., 10.50)
+    const amount = toCentesimi(amountNumber);
+
+    const game = await this.prisma.game.findUnique({
+      where: { type: GameType.MINES },
+    });
+
+    if (!game || !game.isActive) {
+      throw new BadRequestException('Game not available');
+    }
+
+    const minBet = game.minBet as bigint;
+    const maxBet = game.maxBet as bigint | null;
+
+    if (amount < minBet) {
+      throw new BadRequestException(`Amount below minimum bet (${fromCentesimi(minBet).toFixed(2)})`);
+    }
+
+    if (maxBet && amount > maxBet) {
+      throw new BadRequestException(`Amount above maximum bet (${fromCentesimi(maxBet).toFixed(2)})`);
+    }
+
+    const balance = await this.prisma.userBalance.findUnique({
+      where: { userId },
+    });
+
+    const balanceAmount = balance?.balance as bigint || 0n;
+    if (!balance || balanceAmount < amount) {
+      throw new BadRequestException('Insufficient balance');
+    }
+
+    const totalCells = rows * cols;
+    if (rows <= 0 || cols <= 0) {
+      throw new BadRequestException('rows and cols must be > 0');
+    }
+    if (minesCount <= 0 || minesCount >= totalCells) {
+      throw new BadRequestException('minesCount must be > 0 and < rows*cols');
+    }
+
+    const serverSeed = generateServerSeed();
+    const effectiveClientSeed = clientSeed || `auto-${userId}`;
+    const nonce = await this.getNextNonceForUser(userId);
+
+    // Debit bet amount (negative for debit)
+    const debitResult = await updateUserBalance(
+      this.prisma,
+      userId,
+      -amount,
+      TransactionType.BET,
+      { gameType: GameType.MINES, nonce },
+    );
+
+    // Generate mine positions provably fair
+    const minePositions = generateMinesPositions(
+      totalCells,
+      minesCount,
+      serverSeed,
+      effectiveClientSeed,
+      nonce,
+    );
+
+    const initialGameData = {
+      rows,
+      cols,
+      minesCount,
+      minePositions,
+      revealedTiles: [],
+      gemsRevealed: 0,
+      gameEnded: false,
+    };
+
+    const bet = await this.prisma.bet.create({
+      data: {
+        userId,
+        gameId: game.id,
+        amount,
+        status: BetStatus.PENDING,
+        serverSeed,
+        clientSeed: effectiveClientSeed,
+        nonce,
+        gameData: initialGameData,
+      },
+    });
+
+    // Races volume update (for bet placed)
+    await this.racesService.handleBetForRaces(userId, GameType.MINES, amount);
+
+    // Missions progress update (for bet placed)
+    await this.missionsService.handleBetForMissions(userId, GameType.MINES, amount);
+
+    // Achievements check for bet events
+    await this.achievementsService.checkForAchievements(userId, {
+      event: 'BET_PLACED',
+      amount: Number(amount),
+    });
+
+    this.websocketGateway.emitToUser(userId, 'bet:created', {
+      betId: bet.id,
+      gameType: GameType.MINES,
+      status: BetStatus.PENDING,
+      balance: fromCentesimi(debitResult.balanceAfter).toFixed(2),
+      gameData: initialGameData,
+    });
+    this.websocketGateway.emitBalanceUpdate(userId, fromCentesimi(debitResult.balanceAfter).toFixed(2));
+
+    return {
+      betId: bet.id,
+      gameType: GameType.MINES,
+      status: BetStatus.PENDING,
+      amount: fromCentesimi(amount).toFixed(2),
+      balance: fromCentesimi(debitResult.balanceAfter).toFixed(2),
+      gameData: initialGameData,
+    };
+  }
+
+  // Interactive Mines: Reveal a tile
+  async revealTile(userId: string, betId: string, tileIndex: number) {
+    const bet = await this.prisma.bet.findUnique({
+      where: { id: betId },
+      include: { game: true },
+    });
+
+    if (!bet || bet.userId !== userId) {
+      throw new NotFoundException('Bet not found');
+    }
+
+    if (bet.game.type !== GameType.MINES) {
+      throw new BadRequestException('This endpoint is only for Mines games');
+    }
+
+    const gameData = bet.gameData as any;
+    if (!gameData || !gameData.minePositions) {
+      throw new BadRequestException('Invalid game data');
+    }
+
+    // Check if game has already ended (this can happen even if status is still PENDING due to race conditions)
+    if (gameData.gameEnded) {
+      throw new BadRequestException('Game has already ended');
+    }
+
+    if (bet.status !== BetStatus.PENDING) {
+      throw new BadRequestException('Bet is not active');
+    }
+
+    const { rows, cols, minePositions, revealedTiles = [], gemsRevealed = 0 } = gameData;
+    const totalCells = rows * cols;
+
+    if (tileIndex < 0 || tileIndex >= totalCells) {
+      throw new BadRequestException(`Tile index must be between 0 and ${totalCells - 1}`);
+    }
+
+    if (revealedTiles.includes(tileIndex)) {
+      throw new BadRequestException('Tile already revealed');
+    }
+
+    const isMine = minePositions.includes(tileIndex);
+    const newRevealedTiles = [...revealedTiles, tileIndex];
+    const newGemsRevealed = isMine ? gemsRevealed : gemsRevealed + 1;
+    const maxSafe = totalCells - gameData.minesCount;
+    const currentMultiplier = isMine 
+      ? 0 
+      : calculateMinesMultiplier(gameData.minesCount, newGemsRevealed, maxSafe);
+
+    let updatedGameData = {
+      ...gameData,
+      revealedTiles: newRevealedTiles,
+      gemsRevealed: newGemsRevealed,
+      currentMultiplier,
+      gameEnded: isMine,
+    };
+
+    // If hit a mine, game ends immediately
+    if (isMine) {
+      const updatedBet = await this.prisma.bet.update({
+        where: { id: betId },
+        data: {
+          status: BetStatus.LOST,
+          multiplier: new Decimal(0),
+          payout: BigInt(0),
+          gameData: updatedGameData,
+          resolvedAt: new Date(),
+        },
+      });
+
+      // XP (even on loss)
+      const xp = await this.levelsService.calculateXPFromBet(bet.amount, GameType.MINES);
+      const xpResult = await this.levelsService.addXpForUser(
+        userId,
+        xp,
+        'bet',
+        bet.id,
+        { gameType: GameType.MINES },
+      );
+
+      const balance = await this.prisma.userBalance.findUnique({
+        where: { userId },
+      });
+
+      const balanceAmount = balance?.balance as bigint || 0n;
+      this.websocketGateway.emitToUser(userId, 'bet:resolved', {
+        betId: bet.id,
+        gameType: GameType.MINES,
+        status: BetStatus.LOST,
+        payout: '0.00',
+        multiplier: 0,
+        xpEarned: xp.toString(),
+        newLevel: xpResult.newLevel,
+        levelsGained: xpResult.levelsGained,
+        balance: fromCentesimi(balanceAmount).toFixed(2),
+        gameData: updatedGameData,
+      });
+      this.websocketGateway.emitBalanceUpdate(userId, fromCentesimi(balanceAmount).toFixed(2));
+
+      return {
+        betId: bet.id,
+        isMine: true,
+        gameEnded: true,
+        multiplier: 0,
+        gameData: updatedGameData,
+      };
+    }
+
+    // Update bet with new game state
+    const updatedBet = await this.prisma.bet.update({
+      where: { id: betId },
+      data: {
+        gameData: updatedGameData,
+      },
+    });
+
+    const balance = await this.prisma.userBalance.findUnique({
+      where: { userId },
+    });
+
+    const balanceAmount = balance?.balance as bigint || 0n;
+    this.websocketGateway.emitToUser(userId, 'bet:tile-revealed', {
+      betId: bet.id,
+      tileIndex,
+      isMine: false,
+      gemsRevealed: newGemsRevealed,
+      currentMultiplier,
+      gameData: updatedGameData,
+      balance: fromCentesimi(balanceAmount).toFixed(2),
+    });
+
+    return {
+      betId: bet.id,
+      isMine: false,
+      gemsRevealed: newGemsRevealed,
+      currentMultiplier,
+      gameData: updatedGameData,
+    };
+  }
+
+  // Interactive Mines: Cash out
+  async cashOut(userId: string, betId: string) {
+    const bet = await this.prisma.bet.findUnique({
+      where: { id: betId },
+      include: { game: true },
+    });
+
+    if (!bet || bet.userId !== userId) {
+      throw new NotFoundException('Bet not found');
+    }
+
+    if (bet.game.type !== GameType.MINES) {
+      throw new BadRequestException('This endpoint is only for Mines games');
+    }
+
+    const gameData = bet.gameData as any;
+    if (!gameData || gameData.gemsRevealed === undefined) {
+      throw new BadRequestException('Invalid game data');
+    }
+
+    // Check if game has already ended (this can happen even if status is still PENDING due to race conditions)
+    if (gameData.gameEnded) {
+      throw new BadRequestException('Game has already ended');
+    }
+
+    if (bet.status !== BetStatus.PENDING) {
+      throw new BadRequestException('Bet is not active');
+    }
+
+    if (gameData.gemsRevealed === 0) {
+      throw new BadRequestException('Cannot cash out with no gems revealed');
+    }
+
+    // bet.amount is in centesimi, convert to decimal, calculate payout, then back to centesimi
+    const amountDecimal = fromCentesimi(bet.amount as bigint);
+    const multiplier = gameData.currentMultiplier || 1.0;
+    const payoutDecimal = amountDecimal * multiplier;
+    const payout = toCentesimi(payoutDecimal);
+
+    // Credit winnings
+    const creditResult = await updateUserBalance(
+      this.prisma,
+      userId,
+      payout,
+      TransactionType.WIN,
+      { gameType: GameType.MINES, betId: bet.id, multiplier },
+    );
+
+    const updatedGameData = {
+      ...gameData,
+      gameEnded: true,
+      finalMultiplier: multiplier,
+    };
+
+    // Update bet to WON
+    const updatedBet = await this.prisma.bet.update({
+      where: { id: betId },
+      data: {
+        status: BetStatus.WON,
+        multiplier: new Decimal(multiplier),
+        payout,
+        gameData: updatedGameData,
+        resolvedAt: new Date(),
+      },
+    });
+
+    // XP
+    const xp = await this.levelsService.calculateXPFromBet(bet.amount, GameType.MINES);
+    const xpResult = await this.levelsService.addXpForUser(
+      userId,
+      xp,
+      'bet',
+      bet.id,
+      { gameType: GameType.MINES },
+    );
+
+    // Missions and achievements already handled on bet creation
+
+    this.websocketGateway.emitToUser(userId, 'bet:resolved', {
+      betId: bet.id,
+      gameType: GameType.MINES,
+      status: BetStatus.WON,
+      payout: fromCentesimi(payout).toFixed(2),
+      multiplier,
+      xpEarned: xp.toString(),
+      newLevel: xpResult.newLevel,
+      levelsGained: xpResult.levelsGained,
+      balance: fromCentesimi(creditResult.balanceAfter).toFixed(2),
+      gameData: updatedGameData,
+    });
+    this.websocketGateway.emitBalanceUpdate(userId, fromCentesimi(creditResult.balanceAfter).toFixed(2));
+
+    return {
+      betId: bet.id,
+      status: BetStatus.WON,
+      payout: fromCentesimi(payout).toFixed(2),
+      multiplier,
+      xpEarned: xp.toString(),
+      newLevel: xpResult.newLevel,
+      levelsGained: xpResult.levelsGained,
+      balance: fromCentesimi(creditResult.balanceAfter).toFixed(2),
+      gameData: updatedGameData,
+    };
   }
 }
 

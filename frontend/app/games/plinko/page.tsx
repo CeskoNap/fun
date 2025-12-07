@@ -124,7 +124,7 @@ export default function PlinkoPage() {
         <div className="text-xs text-zinc-400">
           Current balance:{" "}
           <span className="text-accent font-semibold">
-            {Math.round(balance).toLocaleString()} FUN
+            {balance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN
           </span>
         </div>
 
@@ -152,7 +152,7 @@ export default function PlinkoPage() {
             <div>Multiplier: x{result.multiplier}</div>
             <div>XP earned: {result.xpEarned}</div>
             <div>New level: {result.newLevel} (+{result.levelsGained})</div>
-            <div>New balance: {Math.round(parseFloat(result.balance || "0")).toLocaleString()} FUN</div>
+            <div>New balance: {parseFloat(result.balance || "0").toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN</div>
             <div className="mt-2">
               <div className="font-semibold mb-1">Game data (Plinko)</div>
               <div className="text-zinc-300">

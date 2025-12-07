@@ -101,7 +101,7 @@ export default function AdminDashboard() {
         </div>
         <div className="bg-card/80 rounded-xl p-6">
           <div className="text-sm text-zinc-400 mb-1">Total Balance</div>
-          <div className="text-3xl font-bold text-accent">{Math.round(parseFloat(stats?.totalBalance || "0")).toLocaleString()} FUN</div>
+          <div className="text-3xl font-bold text-accent">{parseFloat(stats?.totalBalance || "0").toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN</div>
         </div>
       </div>
 

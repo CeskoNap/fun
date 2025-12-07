@@ -121,7 +121,7 @@ export default function AccountPage() {
                 <div>
                   <label className="text-xs text-zinc-400 block mb-1">Balance</label>
                   <div className="text-sm font-semibold text-accent">
-                    {Math.round(balance).toLocaleString()} FUN
+                    {balance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN
                   </div>
                 </div>
 

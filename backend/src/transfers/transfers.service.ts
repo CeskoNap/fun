@@ -4,6 +4,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { TransactionType } from '@prisma/client';
 import { getServerDay } from '../common/utils/server-time.util';
 import { CreateTransferDto } from './dto/create-transfer.dto';
+import { toCentesimi, fromCentesimi, updateUserBalance } from '../common/utils/balance.util';
 
 interface TransferLimitsConfig {
   maxTransfersPerDay: number;
@@ -64,8 +65,8 @@ export class TransfersService {
       throw new BadRequestException('Amount must be positive');
     }
 
-    // Convert to BigInt (round to nearest integer, no decimals)
-    const amountBigInt = BigInt(Math.round(amount));
+    // Convert to centesimi (BigInt): amount is in decimal format (e.g., 10.50)
+    const amountBigInt = toCentesimi(amount);
 
     // Validate sender
     const sender = await this.prisma.user.findUnique({
@@ -252,11 +253,11 @@ export class TransfersService {
     });
 
     return {
-      fromBalance: result.fromBalance.toString(),
+      fromBalance: fromCentesimi(result.fromBalance).toFixed(2),
       toUsername: result.toUsername,
-      amount: result.amount.toString(),
-      fee: result.fee.toString(),
-      netAmount: result.netAmount.toString(),
+      amount: fromCentesimi(result.amount).toFixed(2),
+      fee: fromCentesimi(result.fee).toFixed(2),
+      netAmount: fromCentesimi(result.netAmount).toFixed(2),
     };
   }
 

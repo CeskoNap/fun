@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { LevelsService } from '../levels/levels.service';
 import { Decimal } from '@prisma/client/runtime/library';
-import { updateUserBalance } from '../common/utils/balance.util';
+import { updateUserBalance, fromCentesimi } from '../common/utils/balance.util';
 import { UserRole } from '@prisma/client';
 
 @Injectable()
@@ -468,7 +468,7 @@ export class AdminService {
     return {
       users: users.map((u) => ({
         ...u,
-        balance: u.balance?.balance.toString() || '0',
+        balance: u.balance ? fromCentesimi(u.balance.balance as bigint).toFixed(2) : '0.00',
         level: u.userLevel?.level || 1,
         xp: u.userLevel?.xp.toString() || '0',
       })),
@@ -500,7 +500,7 @@ export class AdminService {
       totalUsers,
       activeUsers,
       bannedUsers,
-      totalBalance: totalBalance.toString(),
+      totalBalance: fromCentesimi(totalBalance).toFixed(2),
       totalTransactions,
     };
   }
@@ -529,7 +529,7 @@ export class AdminService {
 
     return {
       ...userWithoutPassword,
-      balance: user.balance?.balance.toString() || '0',
+      balance: user.balance ? fromCentesimi(user.balance.balance as bigint).toFixed(2) : '0.00',
       level: user.userLevel?.level || 1,
       xp: user.userLevel?.xp.toString() || '0',
     };
@@ -608,13 +608,13 @@ export class AdminService {
       throw new NotFoundException('User not found');
     }
 
-    // Convert to BigInt (round to nearest integer, no decimals)
-    const amountBigInt = BigInt(Math.round(amount));
+    // amount is already in decimal format, pass it directly to updateUserBalance
+    // (which will convert to centesimi internally)
 
     const result = await updateUserBalance(
       this.prisma,
       userId,
-      amountBigInt,
+      amount,
       'ADMIN_ADJUSTMENT',
       {
         reason: reason || 'Admin token grant',
@@ -628,19 +628,19 @@ export class AdminService {
         targetUserId: userId,
         action: 'give_tokens',
         details: {
-          amount: amount.toString(),
+          amount: amount.toFixed(2),
           reason,
-          balanceBefore: result.balanceBefore.toString(),
-          balanceAfter: result.balanceAfter.toString(),
+          balanceBefore: fromCentesimi(result.balanceBefore).toFixed(2),
+          balanceAfter: fromCentesimi(result.balanceAfter).toFixed(2),
         },
       },
     });
 
     return {
       userId,
-      amount: amount.toString(),
-      balanceBefore: result.balanceBefore.toString(),
-      balanceAfter: result.balanceAfter.toString(),
+      amount: amount.toFixed(2),
+      balanceBefore: fromCentesimi(result.balanceBefore).toFixed(2),
+      balanceAfter: fromCentesimi(result.balanceAfter).toFixed(2),
       transactionId: result.transactionId,
     };
   }

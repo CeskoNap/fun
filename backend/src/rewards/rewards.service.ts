@@ -14,7 +14,7 @@ import {
   QuizQuestionPublic,
 } from '../common/types/reward.types';
 import { getServerDay, getCurrentHour, getNextServerDay, isWithinServerDay } from '../common/utils/server-time.util';
-import { updateUserBalance } from '../common/utils/balance.util';
+import { updateUserBalance, toCentesimi, fromCentesimi } from '../common/utils/balance.util';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
 
 @Injectable()
@@ -74,14 +74,14 @@ export class RewardsService {
     // Apply min/max caps
     reward = Math.max(config.minDailyReward, Math.min(config.maxDailyReward, reward));
 
-    // Convert to BigInt (round to nearest integer, no decimals)
-    const rewardAmount = BigInt(Math.round(reward));
+    // Convert to centesimi (BigInt): reward is in decimal format (e.g., 10.50)
+    const rewardAmount = toCentesimi(reward);
 
     // Update balance atomically
     const balanceResult = await updateUserBalance(
       this.prisma,
       userId,
-      rewardAmount,
+      reward,
       'DAILY_REWARD',
       {
         level,
@@ -104,11 +104,11 @@ export class RewardsService {
     });
 
     // Emit WebSocket event
-    this.websocketGateway.emitRewardClaimed(userId, 'daily', rewardAmount.toString());
-    this.websocketGateway.emitBalanceUpdate(userId, balanceResult.balanceAfter.toString());
+    this.websocketGateway.emitRewardClaimed(userId, 'daily', reward.toFixed(2));
+    this.websocketGateway.emitBalanceUpdate(userId, fromCentesimi(balanceResult.balanceAfter).toFixed(2));
 
     return {
-      amount: Number(rewardAmount),
+      amount: reward,
       streak,
       level,
     };
@@ -214,14 +214,14 @@ export class RewardsService {
     let reward = config.baseFaucet + (level * config.faucetMultiplier);
     reward = Math.max(config.minFaucetReward, Math.min(config.maxFaucetReward, reward));
 
-    // Convert to BigInt (round to nearest integer, no decimals)
-    const rewardAmount = BigInt(Math.round(reward));
+    // Convert to centesimi (BigInt): reward is in decimal format (e.g., 10.50)
+    const rewardAmount = toCentesimi(reward);
 
     // Update balance
     const balanceResult = await updateUserBalance(
       this.prisma,
       userId,
-      rewardAmount,
+      reward,
       'HOURLY_FAUCET',
       {
         level,
@@ -242,13 +242,13 @@ export class RewardsService {
     });
 
     // Emit WebSocket event
-    this.websocketGateway.emitRewardClaimed(userId, 'faucet', rewardAmount.toString());
-    this.websocketGateway.emitBalanceUpdate(userId, balanceResult.balanceAfter.toString());
+    this.websocketGateway.emitRewardClaimed(userId, 'faucet', reward.toFixed(2));
+    this.websocketGateway.emitBalanceUpdate(userId, fromCentesimi(balanceResult.balanceAfter).toFixed(2));
 
     const nextAvailable = new Date(currentHour.getTime() + 60 * 60 * 1000);
 
     return {
-      amount: Number(rewardAmount),
+      amount: reward,
       nextAvailableAt: nextAvailable,
       claimsToday: claimsToday + 1,
       dailyLimit: config.dailyFaucetClaimsLimit,
@@ -310,14 +310,15 @@ export class RewardsService {
       );
     }
 
-    // rewardAmount is already BigInt from database
+    // rewardAmount is stored as BigInt in centesimi in database, convert to decimal
     const rewardAmount = adConfig.rewardAmount as bigint;
+    const rewardDecimal = fromCentesimi(rewardAmount);
 
     // Update balance
     const balanceResult = await updateUserBalance(
       this.prisma,
       userId,
-      rewardAmount,
+      rewardDecimal,
       'AD_REWARD',
       {
         provider,
@@ -340,11 +341,11 @@ export class RewardsService {
     });
 
     // Emit WebSocket event
-    this.websocketGateway.emitRewardClaimed(userId, 'ad', rewardAmount.toString());
-    this.websocketGateway.emitBalanceUpdate(userId, balanceResult.balanceAfter.toString());
+    this.websocketGateway.emitRewardClaimed(userId, 'ad', rewardDecimal.toFixed(2));
+    this.websocketGateway.emitBalanceUpdate(userId, fromCentesimi(balanceResult.balanceAfter).toFixed(2));
 
     return {
-      amount: Number(rewardAmount),
+      amount: rewardDecimal,
       adsThisHour: adsThisHour + 1,
       adsToday: adsToday + 1,
       hourlyLimit: adConfig.adsPerHourLimit,
@@ -550,14 +551,14 @@ export class RewardsService {
 
     const config = rewardConfig.config as unknown as QuizRewardConfig;
     const rewardValue = config.rewards[correctCount.toString() as '0' | '1' | '2' | '3'] || 0;
-    // Convert to BigInt (round to nearest integer, no decimals)
-    const rewardAmount = BigInt(Math.round(rewardValue));
+    // Convert to centesimi (BigInt): rewardValue is in decimal format
+    const rewardAmount = toCentesimi(rewardValue);
 
     // Update balance
     const balanceResult = await updateUserBalance(
       this.prisma,
       userId,
-      rewardAmount,
+      rewardValue,
       'QUIZ_REWARD',
       {
         attemptId,
@@ -578,14 +579,14 @@ export class RewardsService {
     });
 
     // Emit WebSocket event
-    if (rewardAmount > 0n) {
-      this.websocketGateway.emitRewardClaimed(userId, 'quiz', rewardAmount.toString());
-      this.websocketGateway.emitBalanceUpdate(userId, balanceResult.balanceAfter.toString());
+    if (rewardValue > 0) {
+      this.websocketGateway.emitRewardClaimed(userId, 'quiz', rewardValue.toFixed(2));
+      this.websocketGateway.emitBalanceUpdate(userId, fromCentesimi(balanceResult.balanceAfter).toFixed(2));
     }
 
     return {
       correctCount,
-      amount: Number(rewardAmount),
+      amount: rewardValue,
       questions: questionResults,
     };
   }

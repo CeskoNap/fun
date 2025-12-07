@@ -157,7 +157,7 @@ export default function RacesPage() {
           <div className="text-sm text-zinc-400">
             Current balance:{" "}
             <span className="text-accent font-semibold">
-              {Math.round(balance).toLocaleString()} FUN
+              {balance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN
             </span>
           </div>
           <button

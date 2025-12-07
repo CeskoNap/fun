@@ -2,6 +2,7 @@ import { Controller, Get, UseGuards } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { CurrentUser } from '../common/decorators/user.decorator';
+import { fromCentesimi } from '../common/utils/balance.util';
 
 @Controller('me')
 @UseGuards(AuthGuard)
@@ -15,8 +16,9 @@ export class MeController {
       select: { balance: true },
     });
 
+    const balanceAmount = balance ? (balance.balance as bigint) : 0n;
     return {
-      balance: balance ? balance.balance.toString() : '0',
+      balance: fromCentesimi(balanceAmount).toFixed(2),
     };
   }
 }

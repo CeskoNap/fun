@@ -2,7 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { getServerDay } from '../common/utils/server-time.util';
-import { updateUserBalance } from '../common/utils/balance.util';
+import { updateUserBalance, fromCentesimi } from '../common/utils/balance.util';
 import { TransactionType } from '@prisma/client';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { createHmac } from 'crypto';
@@ -178,7 +178,7 @@ export class WheelService {
     });
 
     if (result.finalBalance) {
-      this.websocket.emitBalanceUpdate(userId, result.finalBalance.toString());
+      this.websocket.emitBalanceUpdate(userId, fromCentesimi(result.finalBalance).toFixed(2));
     }
 
     if (tokenAmount > 0n) {

@@ -16,12 +16,15 @@ async function request<T>(
   path: string,
   body?: any,
 ): Promise<T> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     method,
-    headers: {
-      "Content-Type": "application/json",
-      "X-User-Id": USER_ID,
-    },
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
 

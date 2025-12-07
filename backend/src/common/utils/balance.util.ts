@@ -13,20 +13,38 @@ export interface BalanceUpdateResult {
 type PrismaClientLike = Pick<PrismaService, 'userBalance' | 'transaction'>;
 
 /**
+ * Convert decimal amount (with 2 decimals) to centesimi (BigInt)
+ * Example: 10.50 -> 1050n
+ */
+export function toCentesimi(amount: number): bigint {
+  return BigInt(Math.round(amount * 100));
+}
+
+/**
+ * Convert centesimi (BigInt) to decimal amount (with 2 decimals)
+ * Example: 1050n -> 10.50
+ */
+export function fromCentesimi(amount: bigint): number {
+  return Number(amount) / 100;
+}
+
+/**
  * Atomically update user balance with transaction logging
  * Uses optimistic locking via version field
- * Note: Balance is now stored as BigInt (no decimals)
+ * Note: Balance is stored as BigInt in centesimi (multiply by 100)
+ * Input amount should be in decimal format (e.g., 10.50)
  */
 export async function updateUserBalance(
   prisma: PrismaClientLike,
   userId: string,
-  amount: bigint | number, // Positive for credit, negative for debit (as integer, no decimals)
+  amount: bigint | number, // Positive for credit, negative for debit (in decimal format, e.g., 10.50)
   transactionType: TransactionType,
   metadata?: Record<string, any>,
   maxRetries: number = 3
 ): Promise<BalanceUpdateResult> {
   let retries = 0;
-  const amountBigInt = typeof amount === 'number' ? BigInt(Math.round(amount)) : amount;
+  // Convert to centesimi (BigInt): multiply by 100
+  const amountBigInt = typeof amount === 'number' ? toCentesimi(amount) : amount;
   
   while (retries < maxRetries) {
     try {
