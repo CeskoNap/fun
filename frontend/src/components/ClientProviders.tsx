@@ -17,7 +17,7 @@ export function ClientProviders({ children }: { children: ReactNode }) {
             <Header />
             <Sidebar />
             <SocketBridge />
-            <div className="flex-1 ml-[60px] min-h-screen">
+            <div className="flex-1 ml-[60px]">
               <div className="max-w-6xl mx-auto px-4">
                 {children}
               </div>

@@ -78,11 +78,12 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
-        <p className="text-zinc-400">Manage users, races, and platform settings</p>
-      </div>
+    <section className="py-12 overflow-visible">
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
+          <p className="text-zinc-400">Manage users, races, and platform settings</p>
+        </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -128,7 +129,8 @@ export default function AdminDashboard() {
           <p className="text-sm text-zinc-400">Configure XP, rewards, and settings</p>
         </Link>
       </div>
-    </div>
+      </div>
+    </section>
   );
 }
 

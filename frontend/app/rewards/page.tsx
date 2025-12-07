@@ -211,7 +211,8 @@ export default function RewardsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <section className="py-12 overflow-visible">
+      <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Rewards</h1>
       <p className="text-sm text-zinc-400">
         Claim your daily, faucet, ad and quiz rewards.
@@ -366,7 +367,8 @@ export default function RewardsPage() {
           )}
         </section>
       </div>
-    </div>
+      </div>
+    </section>
   );
 }
 

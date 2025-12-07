@@ -65,7 +65,8 @@ export default function PlinkoPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <section className="py-12 overflow-visible">
+      <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold mb-1">{t("home.plinkoTitle")}</h1>
         <p className="text-sm text-zinc-400 max-w-xl">
@@ -168,7 +169,8 @@ export default function PlinkoPage() {
           </div>
         )}
       </section>
-    </div>
+      </div>
+    </section>
   );
 }
 

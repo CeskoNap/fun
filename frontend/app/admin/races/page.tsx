@@ -352,7 +352,8 @@ export default function AdminRacesPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </section>
   );
 }
 

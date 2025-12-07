@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (userId: string, token: string) => void;
+  initialMode?: "login" | "register";
 }
 
-export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
-  const [mode, setMode] = useState<"login" | "register">("login");
+export function AuthModal({ isOpen, onClose, onSuccess, initialMode = "login" }: AuthModalProps) {
+  const [mode, setMode] = useState<"login" | "register">(initialMode);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -19,6 +20,13 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     username: "",
     displayName: "",
   });
+
+  // Update mode when initialMode prop changes
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+    }
+  }, [isOpen, initialMode]);
 
   if (!isOpen) return null;
 
@@ -78,7 +86,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
             email: formData.email.trim().toLowerCase(),
             password: formData.password,
             username: formData.username.trim(),
-            displayName: (formData.displayName || formData.username).trim(),
+            displayName: formData.username.trim(), // Use username with original case as displayName
           };
 
       const res = await fetch(url, {
@@ -161,8 +169,17 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     });
   };
 
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center min-h-screen bg-black/60 backdrop-blur-sm p-4">
+    <div 
+      className="fixed inset-0 z-[9999] flex items-center justify-center min-h-screen bg-black/60 backdrop-blur-sm p-4"
+      onClick={handleBackdropClick}
+    >
       <div className="relative bg-card rounded-lg w-full max-w-md p-6 shadow-2xl z-[10000]">
         <button
           onClick={onClose}
@@ -184,40 +201,23 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === "register" && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">
-                  Username
-                </label>
-                <input
-                  type="text"
-                  required
-                  minLength={3}
-                  autoComplete="off"
-                  value={formData.username}
-                  onChange={(e) =>
-                    setFormData({ ...formData, username: e.target.value })
-                  }
-                  className="w-full px-4 py-2 bg-zinc-800 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-accent"
-                  placeholder="Choose a username (3-20 chars, letters, numbers, _ or -)"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">
-                  Display Name (Optional)
-                </label>
-                <input
-                  type="text"
-                  autoComplete="off"
-                  value={formData.displayName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, displayName: e.target.value })
-                  }
-                  className="w-full px-4 py-2 bg-zinc-800 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-accent"
-                  placeholder="Your display name"
-                />
-              </div>
-            </>
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-1">
+                Username
+              </label>
+              <input
+                type="text"
+                required
+                minLength={3}
+                autoComplete="off"
+                value={formData.username}
+                onChange={(e) =>
+                  setFormData({ ...formData, username: e.target.value })
+                }
+                className="w-full px-4 py-2 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                style={{ backgroundColor: "#E8F0FE" }}
+              />
+            </div>
           )}
 
           <div>
@@ -232,8 +232,8 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
               }
-              className="w-full px-4 py-2 bg-zinc-800 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-accent"
-              placeholder={mode === "login" ? "username or your@email.com" : "your@email.com"}
+              className="w-full px-4 py-2 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+              style={{ backgroundColor: "#E8F0FE" }}
             />
           </div>
 
@@ -250,8 +250,8 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
               onChange={(e) =>
                 setFormData({ ...formData, password: e.target.value })
               }
-              className="w-full px-4 py-2 bg-zinc-800 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-accent"
-              placeholder={mode === "login" ? "Enter your password" : "At least 6 characters"}
+              className="w-full px-4 py-2 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+              style={{ backgroundColor: "#E8F0FE" }}
             />
           </div>
 

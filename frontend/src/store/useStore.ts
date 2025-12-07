@@ -57,16 +57,16 @@ export const useStore = create<StoreState>((set, get) => ({
     try {
     // Levels - only fetch if user is authenticated
     if (userId && userId !== 'anonymous') {
-      const res = await fetch(`${API_BASE}/levels/me`, {
+    const res = await fetch(`${API_BASE}/levels/me`, {
         headers,
-      });
-      if (res.ok) {
-        const data = await res.json();
-        set({
-          level: data.level,
+    });
+    if (res.ok) {
+      const data = await res.json();
+      set({
+        level: data.level,
           xp: parseFloat(data.xp || data.totalXpEarned || '0'),
-          xpToNextLevel: data.xpToNextLevel ? parseFloat(data.xpToNextLevel) : 0,
-        });
+        xpToNextLevel: data.xpToNextLevel ? parseFloat(data.xpToNextLevel) : 0,
+      });
       } else if (res.status === 401 || res.status === 404) {
         // User not authenticated or not found - use defaults
         console.debug("User not authenticated for level fetch");

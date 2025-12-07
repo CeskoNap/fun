@@ -16,7 +16,8 @@ export default function LevelsPage() {
   const progress = totalForBar > 0 ? Math.min(1, xp / totalForBar) : 1;
 
   return (
-    <div className="space-y-6">
+    <section className="py-12 overflow-visible">
+      <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold mb-1">Levels</h1>
         <p className="text-sm text-zinc-400 max-w-xl">
@@ -73,7 +74,8 @@ export default function LevelsPage() {
           })}
         </div>
       </section>
-    </div>
+      </div>
+    </section>
   );
 }
 

@@ -154,7 +154,8 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <section className="py-12 overflow-visible">
+      <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">User Management</h1>
         <p className="text-zinc-400">Manage users, ban/unban, and give tokens</p>
@@ -366,7 +367,8 @@ export default function AdminUsersPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </section>
   );
 }
 

@@ -80,7 +80,7 @@ export class AuthService {
             email: normalizedEmail,
             passwordHash,
             username: normalizedUsername, // Store lowercase to prevent case-sensitive duplicates
-            displayName: (dto.displayName || dto.username).trim(), // Display name keeps original case
+            displayName: (dto.displayName || dto.username).trim(), // Display name keeps original case from username input
             oauthProvider: null,
             oauthId: null,
             language: 'en',
