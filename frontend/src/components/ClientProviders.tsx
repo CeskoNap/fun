@@ -6,6 +6,7 @@ import { StoreProvider } from "../store/StoreProvider";
 import { ToastProvider } from "./ToastProvider";
 import { SocketBridge } from "./SocketBridge";
 import { Header } from "./Header";
+import { Sidebar } from "./Sidebar";
 
 export function ClientProviders({ children }: { children: ReactNode }) {
   return (
@@ -14,10 +15,13 @@ export function ClientProviders({ children }: { children: ReactNode }) {
         <ToastProvider>
           <div className="min-h-screen flex flex-col">
             <Header />
+            <Sidebar />
             <SocketBridge />
-            <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
-              {children}
-            </main>
+            <div className="flex-1 ml-[60px] min-h-screen">
+              <div className="max-w-6xl mx-auto px-4">
+                {children}
+              </div>
+            </div>
           </div>
         </ToastProvider>
       </LanguageProvider>

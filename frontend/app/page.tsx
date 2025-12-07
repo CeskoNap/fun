@@ -60,9 +60,9 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="min-h-screen">
+    <div>
       {/* Trending Games Section */}
-      <section className="max-w-6xl mx-auto py-12 overflow-visible">
+      <section className="py-12 overflow-visible">
         <div className="flex items-center gap-2 mb-1">
           <h2 className="text-base font-semibold text-white">{t("home.trendingGames")}</h2>
         </div>
