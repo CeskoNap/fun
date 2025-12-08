@@ -538,14 +538,7 @@ export default function MinesPage() {
         <div className="w-72 bg-card border-l border-card/50 flex flex-col pb-2" style={{ maxHeight: '514px' }}>
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto scrollbar-hide p-4 min-h-0">
-            {recentBets.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="text-4xl mb-3 opacity-50">🎯</div>
-                <div className="text-xs text-zinc-400 font-medium">No bets yet today</div>
-                <div className="text-xs text-zinc-500 mt-1">Start playing to see your history!</div>
-              </div>
-            ) : (
-              recentBets.map((bet, index) => {
+            {recentBets.length > 0 && recentBets.map((bet, index) => {
                 const date = new Date(bet.createdAt);
                 const timeStr = date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
                 const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -573,8 +566,7 @@ export default function MinesPage() {
                     </div>
                   </div>
                 );
-              })
-            )}
+              })}
           </div>
         </div>
       </div>
