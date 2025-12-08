@@ -135,7 +135,7 @@ export default function FairnessPage() {
       </div>
 
       {/* Verify by Bet ID */}
-      <section className="bg-card/80 rounded-xl p-4 space-y-4">
+      <section className="bg-card/80 rounded-md p-4 space-y-4">
         <h2 className="text-lg font-semibold">{t("fairness.verifyByBetId")}</h2>
         <div className="flex flex-wrap gap-4 items-end">
           <div>
@@ -173,7 +173,7 @@ export default function FairnessPage() {
         {betError && <div className="text-sm text-red-400">{betError}</div>}
         {betResult && (
           <div
-            className={`border rounded-lg p-3 text-sm ${
+            className={`border rounded-md p-3 text-sm ${
               betResult.valid ? "border-emerald-500/70" : "border-red-500/70"
             }`}
           >
@@ -207,11 +207,11 @@ export default function FairnessPage() {
       </section>
 
       {/* Manual verification */}
-      <section className="bg-card/80 rounded-xl p-4 space-y-4">
+      <section className="bg-card/80 rounded-md p-4 space-y-4">
         <h2 className="text-lg font-semibold">{t("fairness.manualTitle")}</h2>
 
         {/* Mines manual */}
-        <div className="rounded-lg p-3 space-y-3">
+        <div className="rounded-md p-3 space-y-3">
           <h3 className="text-sm font-semibold">{t("fairness.manualMines")}</h3>
           <div className="flex flex-wrap gap-4 items-end">
             <div>
@@ -325,7 +325,7 @@ export default function FairnessPage() {
         </div>
 
         {/* Plinko manual */}
-        <div className="rounded-lg p-3 space-y-3">
+        <div className="rounded-md p-3 space-y-3">
           <h3 className="text-sm font-semibold">{t("fairness.manualPlinko")}</h3>
           <div className="flex flex-wrap gap-4 items-end">
             <div>

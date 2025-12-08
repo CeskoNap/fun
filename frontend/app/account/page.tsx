@@ -186,7 +186,7 @@ export default function AccountPage() {
     <section className="py-12 overflow-visible">
       <div className="flex gap-6 items-start">
         {/* Left Sidebar */}
-        <div className="w-64 bg-card rounded-xl p-4 space-y-1 flex-shrink-0 self-start">
+        <div className="w-64 bg-card rounded-md p-4 space-y-1 flex-shrink-0 self-start">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -208,7 +208,7 @@ export default function AccountPage() {
         </div>
 
         {/* Right Content Area */}
-        <div className="flex-1 bg-card rounded-xl p-6">
+        <div className="flex-1 bg-card rounded-md p-6">
           {activeTabData && (
             <h1 className="text-lg font-semibold text-zinc-300 mb-6">
               {activeTabData.label}

@@ -119,7 +119,7 @@ export function Header() {
 
                 {/* Account Dropdown Menu */}
                 {accountMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-64 bg-card rounded-lg shadow-xl z-[100] overflow-hidden">
+                  <div className="absolute right-0 top-full mt-2 w-64 bg-card rounded-md shadow-xl z-[100] overflow-hidden">
                     <div className="p-4 shadow-md" style={{ backgroundColor: "#162734" }}>
                       <div className="flex items-center justify-between">
                         <div className="text-sm font-semibold text-white">

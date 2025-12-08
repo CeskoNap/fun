@@ -86,8 +86,8 @@ export default function HomePage() {
               {game.image && !imageErrors[game.id] ? (
                 <>
                   {/* Game Image with Gradient Background */}
-                  <div className="relative w-[140px] h-[184px] rounded-lg overflow-visible">
-                    <div className={`relative rounded-lg transition-all duration-200 ${
+                  <div className="relative w-[140px] h-[184px] rounded-md overflow-visible">
+                    <div className={`relative rounded-md transition-all duration-200 ${
                       !game.available 
                         ? "" 
                         : "group-hover:-translate-y-2 group-hover:shadow-2xl"
@@ -102,7 +102,7 @@ export default function HomePage() {
                         alt={game.title}
                         width={140}
                         height={184}
-                        className="rounded-lg object-cover w-full h-full"
+                        className="rounded-md object-cover w-full h-full"
                         style={{
                           objectFit: 'cover',
                           width: '100%',
@@ -115,7 +115,7 @@ export default function HomePage() {
                       />
                       {/* Gradient overlay */}
                       <div 
-                        className="absolute inset-0 rounded-lg pointer-events-none"
+                        className="absolute inset-0 rounded-md pointer-events-none"
                         style={{
                           background: 'radial-gradient(at 0px 0px, rgb(93, 91, 236), rgba(0, 0, 0, 0) 50%), radial-gradient(at 33% 0px, rgb(158, 68, 204), rgba(0, 0, 0, 0) 50%), radial-gradient(at 67% 0px, rgb(7, 77, 240), rgba(0, 0, 0, 0) 50%), radial-gradient(at 100% 0px, rgb(75, 71, 230), rgba(0, 0, 0, 0) 50%), radial-gradient(at 0px 50%, rgb(111, 140, 221), rgba(0, 0, 0, 0) 50%), radial-gradient(at 33% 50%, rgb(141, 125, 188), rgba(0, 0, 0, 0) 50%), radial-gradient(at 67% 50%, rgb(95, 202, 169), rgba(0, 0, 0, 0) 50%), radial-gradient(at 100% 50%, rgb(71, 201, 107), rgba(0, 0, 0, 0) 50%), radial-gradient(at 0px 100%, rgb(44, 137, 255), rgba(0, 0, 0, 0) 50%), radial-gradient(at 33% 100%, rgb(142, 163, 246), rgba(0, 0, 0, 0) 50%), radial-gradient(at 67% 100%, rgb(132, 180, 250), rgba(0, 0, 0, 0) 50%), radial-gradient(at 100% 100%, rgb(124, 173, 241), rgba(0, 0, 0, 0) 50%)',
                           mixBlendMode: 'overlay',
@@ -127,7 +127,7 @@ export default function HomePage() {
               ) : (
                 <>
                   {/* Placeholder Card (for failed images or coming soon) */}
-                  <div className={`relative w-[140px] h-[184px] bg-card rounded-lg flex flex-col items-center justify-center ${
+                  <div className={`relative w-[140px] h-[184px] bg-card rounded-md flex flex-col items-center justify-center ${
                     !game.available ? "" : "group-hover:-translate-y-2 group-hover:shadow-2xl transition-transform duration-200"
                   }`}
                   style={{ zIndex: 10 }}

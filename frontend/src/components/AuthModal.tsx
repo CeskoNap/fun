@@ -180,7 +180,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialMode = "login" }:
       className="fixed inset-0 z-[9999] flex items-center justify-center min-h-screen bg-black/60 backdrop-blur-sm p-4"
       onClick={handleBackdropClick}
     >
-      <div className="relative bg-card rounded-lg w-full max-w-md p-6 shadow-2xl z-[10000]">
+      <div className="relative bg-card rounded-md w-full max-w-md p-6 shadow-2xl z-[10000]">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors"

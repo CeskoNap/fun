@@ -179,7 +179,7 @@ export default function RacesPage() {
             {races.map((race) => (
               <div
                 key={race.id}
-                className={`flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer transition-colors ${
+                className={`flex items-center justify-between rounded-md px-3 py-2 cursor-pointer transition-colors ${
                   selectedRaceId === race.id ? "bg-card/50" : ""
                 }`}
                 onClick={() => loadLeaderboard(race.id)}
@@ -237,7 +237,7 @@ export default function RacesPage() {
         )}
       </section>
 
-      <section className="bg-card/80 rounded-xl p-4 space-y-3">
+      <section className="bg-card/80 rounded-md p-4 space-y-3">
         <h2 className="text-lg font-semibold">Leaderboard</h2>
         {leaderboardError && (
           <div className="text-sm text-red-400">{leaderboardError}</div>

@@ -192,14 +192,14 @@ export default function AdminRacesPage() {
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 bg-accent text-black font-semibold rounded-lg hover:bg-accent/90"
+          className="px-4 py-2 bg-accent text-black font-semibold rounded-md hover:bg-accent/90"
         >
           Create Race
         </button>
       </div>
 
       {error && (
-        <div className="bg-red-900/30 rounded-xl p-4 text-red-400">
+        <div className="bg-red-900/30 rounded-md p-4 text-red-400">
           {error}
         </div>
       )}
@@ -207,7 +207,7 @@ export default function AdminRacesPage() {
       {loading ? (
         <div className="text-center text-zinc-400 py-8">Loading races...</div>
       ) : (
-        <div className="bg-card/80 rounded-xl overflow-hidden">
+        <div className="bg-card/80 rounded-md overflow-hidden">
           <table className="w-full">
             <thead className="bg-zinc-800">
               <tr>
@@ -226,7 +226,7 @@ export default function AdminRacesPage() {
                 <tr key={race.id} className="border-t border-zinc-800 hover:bg-zinc-800/50">
                   <td className="px-4 py-3 text-white">{race.name}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded text-xs font-semibold ${getStatusColor(race.status)}`}>
+                    <span className={`px-2 py-1 rounded-md text-xs font-semibold ${getStatusColor(race.status)}`}>
                       {race.status}
                     </span>
                   </td>
@@ -244,7 +244,7 @@ export default function AdminRacesPage() {
                       {race.status === "UPCOMING" && (
                         <button
                           onClick={() => handleActivate(race.id)}
-                          className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                          className="px-3 py-1 bg-green-600 text-white text-xs rounded-md hover:bg-green-700"
                         >
                           Activate
                         </button>
@@ -252,7 +252,7 @@ export default function AdminRacesPage() {
                       {race.status === "UPCOMING" && (
                         <button
                           onClick={() => handleCancel(race.id)}
-                          className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                          className="px-3 py-1 bg-red-600 text-white text-xs rounded-md hover:bg-red-700"
                         >
                           Cancel
                         </button>
@@ -260,7 +260,7 @@ export default function AdminRacesPage() {
                       {race.status === "ACTIVE" && (
                         <button
                           onClick={() => handleSettle(race.id)}
-                          className="px-3 py-1 bg-accent text-black text-xs rounded hover:bg-accent/90"
+                          className="px-3 py-1 bg-accent text-black text-xs rounded-md hover:bg-accent/90"
                         >
                           Settle
                         </button>
@@ -277,7 +277,7 @@ export default function AdminRacesPage() {
       {/* Create Race Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-card rounded-lg w-full max-w-md p-6">
+          <div className="bg-card rounded-md w-full max-w-md p-6">
             <h3 className="text-xl font-bold text-white mb-4">Create New Race</h3>
             <div className="space-y-4">
               <div>
@@ -286,7 +286,7 @@ export default function AdminRacesPage() {
                   type="text"
                   value={newRace.name}
                   onChange={(e) => setNewRace({ ...newRace, name: e.target.value })}
-                  className="w-full bg-zinc-800 rounded px-3 py-2 text-white"
+                  className="w-full bg-zinc-800 rounded-md px-3 py-2 text-white"
                   placeholder="Race name"
                 />
               </div>
@@ -295,7 +295,7 @@ export default function AdminRacesPage() {
                 <textarea
                   value={newRace.description}
                   onChange={(e) => setNewRace({ ...newRace, description: e.target.value })}
-                  className="w-full bg-zinc-800 rounded px-3 py-2 text-white"
+                  className="w-full bg-zinc-800 rounded-md px-3 py-2 text-white"
                   placeholder="Race description"
                   rows={3}
                 />
@@ -305,7 +305,7 @@ export default function AdminRacesPage() {
                 <select
                   value={newRace.gameType}
                   onChange={(e) => setNewRace({ ...newRace, gameType: e.target.value })}
-                  className="w-full bg-zinc-800 rounded px-3 py-2 text-white"
+                  className="w-full bg-zinc-800 rounded-md px-3 py-2 text-white"
                 >
                   <option value="">All Games</option>
                   <option value="MINES">Mines</option>
@@ -318,7 +318,7 @@ export default function AdminRacesPage() {
                   type="datetime-local"
                   value={newRace.startsAt}
                   onChange={(e) => setNewRace({ ...newRace, startsAt: e.target.value })}
-                  className="w-full bg-zinc-800 rounded px-3 py-2 text-white"
+                  className="w-full bg-zinc-800 rounded-md px-3 py-2 text-white"
                 />
               </div>
               <div>
@@ -327,14 +327,14 @@ export default function AdminRacesPage() {
                   type="datetime-local"
                   value={newRace.endsAt}
                   onChange={(e) => setNewRace({ ...newRace, endsAt: e.target.value })}
-                  className="w-full bg-zinc-800 rounded px-3 py-2 text-white"
+                  className="w-full bg-zinc-800 rounded-md px-3 py-2 text-white"
                 />
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={handleCreateRace}
                   disabled={!newRace.name || !newRace.startsAt || !newRace.endsAt}
-                  className="flex-1 px-4 py-2 bg-accent text-black rounded hover:bg-accent/90 disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-accent text-black rounded-md hover:bg-accent/90 disabled:opacity-50"
                 >
                   Create Race
                 </button>
@@ -343,7 +343,7 @@ export default function AdminRacesPage() {
                     setShowCreateModal(false);
                     setNewRace({ name: "", description: "", gameType: "", startsAt: "", endsAt: "" });
                   }}
-                  className="flex-1 px-4 py-2 bg-zinc-800 text-white rounded hover:bg-zinc-700"
+                  className="flex-1 px-4 py-2 bg-zinc-800 text-white rounded-md hover:bg-zinc-700"
                 >
                   Cancel
                 </button>

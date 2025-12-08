@@ -50,7 +50,7 @@ export default function AchievementsPage() {
         </p>
       </div>
 
-      <section className="bg-card/80 rounded-xl p-4 space-y-4">
+      <section className="bg-card/80 rounded-md p-4 space-y-4">
         {error && <div className="text-sm text-red-400">{error}</div>}
         {loading && (
           <div className="text-sm text-zinc-400">Loading achievements...</div>
@@ -71,14 +71,14 @@ export default function AchievementsPage() {
           {achievements.map((a) => (
             <div
               key={a.code}
-              className={`rounded-lg p-3 text-sm ${
+              className={`rounded-md p-3 text-sm ${
                 a.unlocked ? "" : "opacity-60"
               }`}
             >
               <div className="flex items-center justify-between mb-1">
                 <div className="font-semibold text-white">{a.name}</div>
                 <span
-                  className={`text-[11px] px-2 py-0.5 rounded-full ${
+                  className={`text-[11px] px-2 py-0.5 rounded-md ${
                     a.unlocked
                       ? "bg-emerald-500/20 text-emerald-300"
                       : "bg-zinc-700/40 text-zinc-300"

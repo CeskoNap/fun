@@ -71,7 +71,7 @@ export default function AdminDashboard() {
 
   if (error) {
     return (
-      <div className="bg-red-900/30 rounded-xl p-4 text-red-400">
+      <div className="bg-red-900/30 rounded-md p-4 text-red-400">
         Error: {error}
       </div>
     );
@@ -87,19 +87,19 @@ export default function AdminDashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-card/80 rounded-xl p-6">
+        <div className="bg-card/80 rounded-md p-6">
           <div className="text-sm text-zinc-400 mb-1">Total Users</div>
           <div className="text-3xl font-bold text-white">{stats?.totalUsers || 0}</div>
         </div>
-        <div className="bg-card/80 rounded-xl p-6">
+        <div className="bg-card/80 rounded-md p-6">
           <div className="text-sm text-zinc-400 mb-1">Active Users</div>
           <div className="text-3xl font-bold text-green-400">{stats?.activeUsers || 0}</div>
         </div>
-        <div className="bg-card/80 rounded-xl p-6">
+        <div className="bg-card/80 rounded-md p-6">
           <div className="text-sm text-zinc-400 mb-1">Banned Users</div>
           <div className="text-3xl font-bold text-red-400">{stats?.bannedUsers || 0}</div>
         </div>
-        <div className="bg-card/80 rounded-xl p-6">
+        <div className="bg-card/80 rounded-md p-6">
           <div className="text-sm text-zinc-400 mb-1">Total Balance</div>
           <div className="text-3xl font-bold text-accent">{parseFloat(stats?.totalBalance || "0").toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN</div>
         </div>
@@ -109,21 +109,21 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Link
           href="/admin/users"
-          className="bg-card/80 rounded-xl p-6 transition-colors"
+          className="bg-card/80 rounded-md p-6 transition-colors"
         >
           <h3 className="text-xl font-semibold text-white mb-2">👥 User Management</h3>
           <p className="text-sm text-zinc-400">Manage users, ban/unban, give tokens</p>
         </Link>
         <Link
           href="/admin/races"
-          className="bg-card/80 rounded-xl p-6 transition-colors"
+          className="bg-card/80 rounded-md p-6 transition-colors"
         >
           <h3 className="text-xl font-semibold text-white mb-2">🏁 Race Management</h3>
           <p className="text-sm text-zinc-400">Create, activate, and manage races</p>
         </Link>
         <Link
           href="/admin/config"
-          className="bg-card/80 rounded-xl p-6 transition-colors"
+          className="bg-card/80 rounded-md p-6 transition-colors"
         >
           <h3 className="text-xl font-semibold text-white mb-2">⚙️ Configuration</h3>
           <p className="text-sm text-zinc-400">Configure XP, rewards, and settings</p>

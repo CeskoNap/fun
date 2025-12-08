@@ -14,6 +14,7 @@ import { WheelModule } from './wheel/wheel.module';
 import { MissionsModule } from './missions/missions.module';
 import { AchievementsModule } from './achievements/achievements.module';
 import { AuthModule } from './auth/auth.module';
+import { GamesModule } from './games/games.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { AuthModule } from './auth/auth.module';
     MissionsModule,
     AchievementsModule,
     AuthModule,
+    GamesModule,
   ],
 })
 export class AppModule {}

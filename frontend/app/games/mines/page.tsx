@@ -9,6 +9,7 @@ import {
   ChartBarIcon, 
   ArrowTopRightOnSquareIcon 
 } from "@heroicons/react/24/outline";
+import { GameInfoSection } from "../../../src/components/GameInfoSection";
 
 type GameMode = "manual" | "auto";
 
@@ -37,6 +38,13 @@ export default function MinesPage() {
   const [betId, setBetId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [recentBets, setRecentBets] = useState<Array<{
+    id: string;
+    createdAt: string;
+    multiplier: number;
+    payout: number;
+    status: string;
+  }>>([]);
 
   const GRID_SIZE = 25; // 5x5 grid
   const ROWS = 5;
@@ -169,6 +177,7 @@ export default function MinesPage() {
         setHasWon(false);
         setCanCashOut(false);
         await fetchLevelAndBalance();
+        await loadRecentBets();
       } else {
         // Update state from backend
         setGemsRevealed(response.gemsRevealed || 0);
@@ -231,6 +240,7 @@ export default function MinesPage() {
       setCanCashOut(false);
 
       await fetchLevelAndBalance();
+      await loadRecentBets();
     } catch (e: any) {
       if (e instanceof ApiError) {
         // If bet is not active, it means the game already ended - don't show error
@@ -291,7 +301,23 @@ export default function MinesPage() {
 
   useEffect(() => {
     fetchLevelAndBalance();
+    loadRecentBets();
   }, [fetchLevelAndBalance]);
+
+  const loadRecentBets = async () => {
+    try {
+      const data = await apiClient.get<Array<{
+        id: string;
+        createdAt: string;
+        multiplier: number;
+        payout: number;
+        status: string;
+      }>>("/games/MINES/recent-bets");
+      setRecentBets(data);
+    } catch (e: any) {
+      console.error("Error loading recent bets:", e);
+    }
+  };
 
   const betAmountNumber = parseFloat(betAmount) || 0;
   const totalProfit = betAmountNumber * (currentMultiplier - 1);
@@ -299,17 +325,17 @@ export default function MinesPage() {
   return (
     <div className="flex flex-col bg-background pt-5" style={{ marginTop: '1.25rem' }}>
       {/* Main Game Container */}
-      <div className="flex shadow-lg rounded-lg overflow-hidden">
+      <div className="flex shadow-lg rounded-md overflow-hidden border border-card/50" style={{ boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06), 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
         {/* Left Sidebar */}
-        <div className="w-64 bg-card border-r border-card/50 flex flex-col pb-2" style={{ minHeight: '100%' }}>
+        <div className="w-72 bg-card border-r border-card/50 flex flex-col pb-2" style={{ minHeight: '100%' }}>
           {/* Sticky Top Section */}
           <div className="sticky top-0 bg-card z-10">
             {/* Manual/Auto Tabs */}
-            <div className="p-3 border-b border-card/50">
-              <div className="flex gap-1.5 rounded-full bg-background/30 p-0.5">
+            <div className="p-4 border-b border-card/50">
+              <div className="flex gap-1.5 rounded-md bg-background/30 p-0.5">
                 <button
                   onClick={() => setMode("manual")}
-                  className={`flex-1 py-1.5 px-3 rounded-full text-xs font-semibold transition-all ${
+                  className={`flex-1 py-1.5 px-3 rounded-md text-xs font-semibold transition-all ${
                     mode === "manual"
                       ? "bg-background/50 text-white"
                       : "bg-transparent text-zinc-400 hover:text-white"
@@ -319,10 +345,11 @@ export default function MinesPage() {
                 </button>
                 <button
                   onClick={() => setMode("auto")}
-                  className={`flex-1 py-1.5 px-3 rounded-full text-xs font-semibold transition-all ${
+                  disabled
+                  className={`flex-1 py-1.5 px-3 rounded-md text-xs font-semibold transition-all opacity-50 cursor-not-allowed ${
                     mode === "auto"
                       ? "bg-background/50 text-white"
-                      : "bg-transparent text-zinc-400 hover:text-white"
+                      : "bg-transparent text-zinc-400"
                   }`}
                 >
                   Auto
@@ -332,7 +359,7 @@ export default function MinesPage() {
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto scrollbar-hide p-3 space-y-3">
+          <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-3">
             {/* Bet Amount */}
             <div className="space-y-1.5">
               <label className="flex items-center justify-between text-xs font-semibold text-white">
@@ -465,8 +492,8 @@ export default function MinesPage() {
         {/* Game Grid Area */}
         <div className="flex-1 flex flex-col bg-background relative">
           {/* Game Grid */}
-          <div className="flex-1 flex items-start justify-center pt-5 px-1 pb-5">
-            <div className="grid grid-cols-5 gap-1.5 max-w-xl w-full" style={{ fontSize: '0.8em' }}>
+          <div className="flex-1 flex items-start justify-center pt-8 px-4 pb-8">
+            <div className="grid grid-cols-5 gap-1.5 max-w-md w-full" style={{ fontSize: '0.75em' }}>
               {Array.from({ length: GRID_SIZE }, (_, i) => {
                 const tile = tiles[i] || { id: i, isMine: false, isRevealed: false, isFlagged: false };
                 const isRevealed = tile.isRevealed;
@@ -477,7 +504,7 @@ export default function MinesPage() {
                     key={i}
                     onClick={() => handleTileClick(i)}
                     disabled={loading || !isGameActive || gameEnded}
-                    className={`tile aspect-square rounded-lg transition-all duration-300 ${
+                    className={`tile aspect-square rounded-md transition-all duration-300 ${
                       isRevealed
                         ? isMine
                           ? "bg-red-500"
@@ -489,14 +516,14 @@ export default function MinesPage() {
                     data-revealed={isRevealed}
                   >
                     {!isRevealed && (
-                      <div className="cover absolute inset-0 rounded-lg" style={{ backgroundColor: '#2F4553' }} />
+                      <div className="cover absolute inset-0 rounded-md" style={{ backgroundColor: '#2F4553' }} />
                     )}
                     {isRevealed && (
                       <div className="w-full h-full flex items-center justify-center">
                         {isMine ? (
-                          <span className="text-2xl">💣</span>
+                          <span className="text-2xl" style={{ fontSize: 'calc(1.5rem + 2px)' }}>💣</span>
                         ) : (
-                          <span className="text-2xl">💎</span>
+                          <span className="text-2xl" style={{ fontSize: 'calc(1.5rem + 2px)' }}>💎</span>
                         )}
                       </div>
                     )}
@@ -506,10 +533,54 @@ export default function MinesPage() {
             </div>
           </div>
         </div>
+
+        {/* Right Sidebar - Recent Bets */}
+        <div className="w-72 bg-card border-l border-card/50 flex flex-col pb-2" style={{ maxHeight: '514px' }}>
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto scrollbar-hide p-4 min-h-0">
+            {recentBets.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="text-4xl mb-3 opacity-50">🎯</div>
+                <div className="text-xs text-zinc-400 font-medium">No bets yet today</div>
+                <div className="text-xs text-zinc-500 mt-1">Start playing to see your history!</div>
+              </div>
+            ) : (
+              recentBets.map((bet, index) => {
+                const date = new Date(bet.createdAt);
+                const timeStr = date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+                const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                const bgColor = index % 2 === 0 ? "#142633" : "#0F212E";
+                
+                return (
+                  <div
+                    key={bet.id}
+                    className="px-2.5 py-1.5 border border-card/30 hover:bg-background/40 transition-colors"
+                    style={{ backgroundColor: bgColor }}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="text-[10px] text-zinc-400">{dateStr}</div>
+                      <div className="text-[10px] text-zinc-400">{timeStr}</div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs font-semibold text-white">
+                        {bet.multiplier > 0 ? `${bet.multiplier.toFixed(2)}×` : "-"}
+                      </div>
+                      <div className={`text-xs font-semibold ${
+                        bet.status === "WON" ? "text-green-400" : "text-red-400"
+                      }`}>
+                        {bet.payout > 0 ? `${bet.payout.toFixed(2)}` : "0.00"} FUN
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Bottom Bar */}
-      <div className="h-12 bg-card border-t border-card/50 flex items-center justify-between px-4 mt-2">
+      <div className="h-12 bg-card border-t border-card/50 flex items-center px-4 mt-2 rounded-md relative">
         <div className="flex items-center gap-3">
           <button className="p-1.5 text-zinc-400 hover:text-white transition-colors">
             <Cog6ToothIcon className="w-4 h-4" />
@@ -525,15 +596,20 @@ export default function MinesPage() {
           </button>
         </div>
 
-        <div className="text-white font-cream-cake text-lg">Fun</div>
+        <div className="absolute left-1/2 transform -translate-x-1/2 text-white font-cream-cake" style={{ fontSize: 'calc(1.125rem + 2px)' }}>Fun</div>
 
-        <button className="px-3 py-1.5 rounded-md bg-background/50 hover:bg-background/60 text-white text-xs font-semibold flex items-center gap-1.5">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path fillRule="evenodd" clipRule="evenodd" d="M20 2c1.1 0 2 .9 2 2v12l-10 7-10-7V4c0-1.1.9-2 2-2zm-1.55 4.772a.996.996 0 0 0-1.41 0l-6.79 6.79-1.79-1.79a.996.996 0 1 0-1.41 1.41l3.21 3.21 8.21-8.21h-.02a.996.996 0 0 0 0-1.41" fill="currentColor"/>
-          </svg>
-          Fairness
-        </button>
+        <div className="ml-auto">
+          <button className="px-3 py-1.5 rounded-md bg-background/50 hover:bg-background/60 text-white text-xs font-semibold flex items-center gap-1.5">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path fillRule="evenodd" clipRule="evenodd" d="M20 2c1.1 0 2 .9 2 2v12l-10 7-10-7V4c0-1.1.9-2 2-2zm-1.55 4.772a.996.996 0 0 0-1.41 0l-6.79 6.79-1.79-1.79a.996.996 0 1 0-1.41 1.41l3.21 3.21 8.21-8.21h-.02a.996.996 0 0 0 0-1.41" fill="currentColor"/>
+            </svg>
+            Fairness
+          </button>
+        </div>
       </div>
+
+      {/* Game Info Section */}
+      <GameInfoSection gameType="MINES" gameName="Mines" />
     </div>
   );
 }

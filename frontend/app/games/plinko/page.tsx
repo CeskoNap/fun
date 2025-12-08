@@ -5,6 +5,7 @@ import { useStore } from "../../../src/store/useStore";
 import { useI18n } from "../../../src/i18n/useI18n";
 import { apiClient, ApiError } from "../../../src/lib/apiClient";
 import { mapErrorKey } from "../../../src/lib/errorMapping";
+import { GameInfoSection } from "../../../src/components/GameInfoSection";
 
 type PlinkoRisk = "low" | "medium" | "high";
 
@@ -74,7 +75,7 @@ export default function PlinkoPage() {
         </p>
       </div>
 
-      <section className="bg-card/80 rounded-xl p-4 space-y-4">
+      <section className="bg-card/80 rounded-md p-4 space-y-4">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs text-zinc-400 mb-1">Amount (FUN)</label>
@@ -169,6 +170,9 @@ export default function PlinkoPage() {
           </div>
         )}
       </section>
+
+      {/* Game Info Section */}
+      <GameInfoSection gameType="PLINKO" gameName={t("home.plinkoTitle")} />
       </div>
     </section>
   );

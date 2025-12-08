@@ -95,7 +95,7 @@ export default function TransfersPage() {
         </p>
       </div>
 
-      <section className="bg-card/80 rounded-xl p-4 space-y-4">
+      <section className="bg-card/80 rounded-md p-4 space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm text-zinc-400">Your level</div>

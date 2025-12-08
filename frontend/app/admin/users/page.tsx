@@ -171,12 +171,12 @@ export default function AdminUsersPage() {
             setSearch(e.target.value);
             setPage(1);
           }}
-          className="flex-1 bg-card rounded-lg px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-accent"
+          className="flex-1 bg-card rounded-md px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-accent"
         />
       </div>
 
       {error && (
-        <div className="bg-red-900/30 rounded-xl p-4 text-red-400">
+        <div className="bg-red-900/30 rounded-md p-4 text-red-400">
           {error}
         </div>
       )}
@@ -186,7 +186,7 @@ export default function AdminUsersPage() {
       ) : (
         <>
           {/* Users Table */}
-          <div className="bg-card/80 rounded-xl overflow-hidden">
+          <div className="bg-card/80 rounded-md overflow-hidden">
             <table className="w-full">
               <thead className="bg-zinc-800">
                 <tr>
@@ -205,7 +205,7 @@ export default function AdminUsersPage() {
                     <td className="px-4 py-3 text-white">{user.username}</td>
                     <td className="px-4 py-3 text-zinc-400">{user.email || "-"}</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                      <span className={`px-2 py-1 rounded-md text-xs font-semibold ${
                         user.role === "ADMIN" ? "bg-purple-900 text-purple-300" :
                         user.role === "MODERATOR" ? "bg-blue-900 text-blue-300" :
                         "bg-zinc-700 text-zinc-300"
@@ -217,11 +217,11 @@ export default function AdminUsersPage() {
                     <td className="px-4 py-3 text-white">#{user.level}</td>
                     <td className="px-4 py-3">
                       {user.isBanned ? (
-                        <span className="px-2 py-1 rounded text-xs font-semibold bg-red-900 text-red-300">
+                        <span className="px-2 py-1 rounded-md text-xs font-semibold bg-red-900 text-red-300">
                           Banned
                         </span>
                       ) : (
-                        <span className="px-2 py-1 rounded text-xs font-semibold bg-green-900 text-green-300">
+                        <span className="px-2 py-1 rounded-md text-xs font-semibold bg-green-900 text-green-300">
                           Active
                         </span>
                       )}
@@ -231,7 +231,7 @@ export default function AdminUsersPage() {
                         {user.isBanned ? (
                           <button
                             onClick={() => handleUnban(user.id)}
-                            className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                            className="px-3 py-1 bg-green-600 text-white text-xs rounded-md hover:bg-green-700"
                           >
                             Unban
                           </button>
@@ -241,7 +241,7 @@ export default function AdminUsersPage() {
                               setSelectedUser(user);
                               setShowBanModal(true);
                             }}
-                            className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                            className="px-3 py-1 bg-red-600 text-white text-xs rounded-md hover:bg-red-700"
                           >
                             Ban
                           </button>
@@ -251,7 +251,7 @@ export default function AdminUsersPage() {
                             setSelectedUser(user);
                             setShowTokenModal(true);
                           }}
-                          className="px-3 py-1 bg-accent text-black text-xs rounded hover:bg-accent/90"
+                          className="px-3 py-1 bg-accent text-black text-xs rounded-md hover:bg-accent/90"
                         >
                           Give Tokens
                         </button>
@@ -269,7 +269,7 @@ export default function AdminUsersPage() {
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-4 py-2 bg-zinc-800 text-white rounded disabled:opacity-50"
+                className="px-4 py-2 bg-zinc-800 text-white rounded-md disabled:opacity-50"
               >
                 Previous
               </button>
@@ -279,7 +279,7 @@ export default function AdminUsersPage() {
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="px-4 py-2 bg-zinc-800 text-white rounded disabled:opacity-50"
+                className="px-4 py-2 bg-zinc-800 text-white rounded-md disabled:opacity-50"
               >
                 Next
               </button>
@@ -291,7 +291,7 @@ export default function AdminUsersPage() {
       {/* Ban Modal */}
       {showBanModal && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-card rounded-lg w-full max-w-md p-6">
+          <div className="bg-card rounded-md w-full max-w-md p-6">
             <h3 className="text-xl font-bold text-white mb-4">Ban User: {selectedUser.username}</h3>
             <div className="space-y-4">
               <div>
@@ -300,14 +300,14 @@ export default function AdminUsersPage() {
                   type="text"
                   value={banReason}
                   onChange={(e) => setBanReason(e.target.value)}
-                  className="w-full bg-zinc-800 rounded px-3 py-2 text-white"
+                  className="w-full bg-zinc-800 rounded-md px-3 py-2 text-white"
                   placeholder="Ban reason..."
                 />
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={handleBan}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
                 >
                   Ban User
                 </button>
@@ -317,7 +317,7 @@ export default function AdminUsersPage() {
                     setBanReason("");
                     setSelectedUser(null);
                   }}
-                  className="flex-1 px-4 py-2 bg-zinc-800 text-white rounded hover:bg-zinc-700"
+                  className="flex-1 px-4 py-2 bg-zinc-800 text-white rounded-md hover:bg-zinc-700"
                 >
                   Cancel
                 </button>
@@ -330,7 +330,7 @@ export default function AdminUsersPage() {
       {/* Give Tokens Modal */}
       {showTokenModal && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-card rounded-lg w-full max-w-md p-6">
+          <div className="bg-card rounded-md w-full max-w-md p-6">
             <h3 className="text-xl font-bold text-white mb-4">Give Tokens to: {selectedUser.username}</h3>
             <div className="space-y-4">
               <div>
@@ -339,7 +339,7 @@ export default function AdminUsersPage() {
                   type="number"
                   value={tokenAmount}
                   onChange={(e) => setTokenAmount(e.target.value)}
-                  className="w-full bg-zinc-800 rounded px-3 py-2 text-white"
+                  className="w-full bg-zinc-800 rounded-md px-3 py-2 text-white"
                   placeholder="0.00000000"
                   step="0.00000001"
                   min="0"
@@ -348,7 +348,7 @@ export default function AdminUsersPage() {
               <div className="flex gap-3">
                 <button
                   onClick={handleGiveTokens}
-                  className="flex-1 px-4 py-2 bg-accent text-black rounded hover:bg-accent/90"
+                  className="flex-1 px-4 py-2 bg-accent text-black rounded-md hover:bg-accent/90"
                 >
                   Give Tokens
                 </button>
@@ -358,7 +358,7 @@ export default function AdminUsersPage() {
                     setTokenAmount("");
                     setSelectedUser(null);
                   }}
-                  className="flex-1 px-4 py-2 bg-zinc-800 text-white rounded hover:bg-zinc-700"
+                  className="flex-1 px-4 py-2 bg-zinc-800 text-white rounded-md hover:bg-zinc-700"
                 >
                   Cancel
                 </button>
