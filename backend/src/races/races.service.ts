@@ -4,6 +4,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { GameType, RaceStatus, TransactionType } from '@prisma/client';
 import { getServerDay } from '../common/utils/server-time.util';
 import { updateUserBalance } from '../common/utils/balance.util';
+import { fromCentesimi } from '../common/utils/balance.util';
 
 interface PrizeDistributionConfig {
   topPercentageWinners: number;
@@ -384,6 +385,67 @@ export class RacesService {
     });
 
     return { settled: true };
+  }
+
+  async getHomepageActiveRace() {
+    // Get the most recent active race
+    const race = await this.prisma.race.findFirst({
+      where: {
+        status: RaceStatus.ACTIVE,
+      },
+      orderBy: { startsAt: 'desc' },
+      include: {
+        participants: {
+          orderBy: { volume: 'desc' },
+          take: 3,
+          include: {
+            user: {
+              select: {
+                username: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!race) {
+      return null;
+    }
+
+    // Calculate potential prizes based on prize distribution
+    const cfg = await this.getDefaultRaceConfig();
+    const dist = cfg.prizeDistribution as unknown as PrizeDistributionConfig;
+    const prizePool = race.prizePool as bigint;
+    
+    const topPlayers = race.participants.map((p, index) => {
+      const rank = index + 1;
+      let potentialPrize = 0;
+      
+      // Calculate potential prize based on current rank and distribution
+      for (const tier of dist.tiers) {
+        if (rank >= tier.rankStart && rank <= tier.rankEnd) {
+          const tierPool = (prizePool * BigInt(tier.percentage)) / 100n;
+          const countInTier = tier.rankEnd - tier.rankStart + 1;
+          potentialPrize = fromCentesimi(tierPool / BigInt(countInTier));
+          break;
+        }
+      }
+
+      return {
+        rank,
+        username: p.user.username,
+        prize: potentialPrize,
+      };
+    });
+
+    return {
+      id: race.id,
+      name: race.name,
+      prizePool: fromCentesimi(prizePool),
+      endsAt: race.endsAt,
+      topPlayers,
+    };
   }
 }
 

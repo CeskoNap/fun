@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { GameType } from '@prisma/client';
 import { fromCentesimi } from '../common/utils/balance.util';
 import { getServerDay, getNextServerDay } from '../common/utils/server-time.util';
+import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class GamesService {
@@ -181,5 +182,88 @@ export class GamesService {
       status: bet.status,
     }));
   }
+
+  async getRtpLive() {
+    const twentyFourHoursAgo = new Date();
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
+    // Get all bets from last 24 hours
+    const bets = await this.prisma.bet.findMany({
+      where: {
+        createdAt: {
+          gte: twentyFourHoursAgo,
+        },
+        status: { in: ['WON', 'LOST'] },
+      },
+      select: {
+        amount: true,
+        payout: true,
+        createdAt: true,
+      },
+    });
+
+    if (bets.length === 0) {
+      return {
+        rtp: 100.0,
+        change: 0,
+        history: [],
+      };
+    }
+
+    // Calculate total bet amount and total payout
+    let totalBetAmount = 0n;
+    let totalPayout = 0n;
+
+    for (const bet of bets) {
+      totalBetAmount += bet.amount as bigint;
+      totalPayout += (bet.payout as bigint) || 0n;
+    }
+
+    // Calculate RTP: (Total Payout / Total Bet Amount) * 100
+    const rtpDecimal = totalBetAmount > 0n
+      ? (Number(totalPayout) / Number(totalBetAmount)) * 100
+      : 100.0;
+
+    // For change calculation, we'd need historical data
+    // For now, return 0 as placeholder
+    const change = 0;
+
+    // Generate history data (last 24 hours, hourly buckets)
+    const history: Array<{ time: string; rtp: number }> = [];
+    const now = new Date();
+    for (let i = 23; i >= 0; i--) {
+      const hourStart = new Date(now);
+      hourStart.setHours(now.getHours() - i, 0, 0, 0);
+      const hourEnd = new Date(hourStart);
+      hourEnd.setHours(hourStart.getHours() + 1);
+
+      const hourBets = bets.filter(
+        (bet) => bet.createdAt >= hourStart && bet.createdAt < hourEnd
+      );
+
+      let hourTotalBet = 0n;
+      let hourTotalPayout = 0n;
+      for (const bet of hourBets) {
+        hourTotalBet += bet.amount as bigint;
+        hourTotalPayout += (bet.payout as bigint) || 0n;
+      }
+
+      const hourRtp = hourTotalBet > 0n
+        ? (Number(hourTotalPayout) / Number(hourTotalBet)) * 100
+        : 100.0;
+
+      history.push({
+        time: hourStart.toISOString(),
+        rtp: hourRtp,
+      });
+    }
+
+    return {
+      rtp: Number(rtpDecimal.toFixed(2)),
+      change,
+      history,
+    };
+  }
 }
+
 

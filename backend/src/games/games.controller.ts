@@ -13,6 +13,11 @@ export class GamesController {
     return this.gamesService.getGlobalRecord();
   }
 
+  @Get('rtp-live')
+  async getRtpLive() {
+    return this.gamesService.getRtpLive();
+  }
+
   @Get(':gameType/big-wins')
   async getBigWins(@Param('gameType') gameType: GameType) {
     return this.gamesService.getBigWins(gameType);
@@ -37,4 +42,5 @@ export class GamesController {
     return this.gamesService.getRecentBets(userId, gameType);
   }
 }
+
 

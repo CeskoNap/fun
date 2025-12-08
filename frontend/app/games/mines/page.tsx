@@ -591,13 +591,13 @@ export default function MinesPage() {
         <div className="absolute left-1/2 transform -translate-x-1/2 text-white font-cream-cake" style={{ fontSize: 'calc(1.125rem + 2px)' }}>Fun</div>
 
         <div className="ml-auto">
-          <button className="px-3 py-1.5 rounded-md bg-background/50 hover:bg-background/60 text-white text-xs font-semibold flex items-center gap-1.5">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path fillRule="evenodd" clipRule="evenodd" d="M20 2c1.1 0 2 .9 2 2v12l-10 7-10-7V4c0-1.1.9-2 2-2zm-1.55 4.772a.996.996 0 0 0-1.41 0l-6.79 6.79-1.79-1.79a.996.996 0 1 0-1.41 1.41l3.21 3.21 8.21-8.21h-.02a.996.996 0 0 0 0-1.41" fill="currentColor"/>
-            </svg>
-            Fairness
-          </button>
-        </div>
+        <button className="px-3 py-1.5 rounded-md bg-background/50 hover:bg-background/60 text-white text-xs font-semibold flex items-center gap-1.5">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path fillRule="evenodd" clipRule="evenodd" d="M20 2c1.1 0 2 .9 2 2v12l-10 7-10-7V4c0-1.1.9-2 2-2zm-1.55 4.772a.996.996 0 0 0-1.41 0l-6.79 6.79-1.79-1.79a.996.996 0 1 0-1.41 1.41l3.21 3.21 8.21-8.21h-.02a.996.996 0 0 0 0-1.41" fill="currentColor"/>
+          </svg>
+          Fairness
+        </button>
+      </div>
       </div>
 
       {/* Game Info Section */}

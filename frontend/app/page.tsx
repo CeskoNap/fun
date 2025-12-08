@@ -6,6 +6,7 @@ import { useStore } from "../src/store/useStore";
 import { useUserSocket } from "../src/hooks/useUserSocket";
 import { useI18n } from "../src/i18n/useI18n";
 import { AuthModal } from "../src/components/AuthModal";
+import { HomeStatsSection } from "../src/components/HomeStatsSection";
 
 export default function HomePage() {
   const { t } = useI18n();
@@ -61,6 +62,11 @@ export default function HomePage() {
 
   return (
     <div>
+      {/* Home Stats Section - RTP Live & Races */}
+      <section className="py-6 overflow-visible">
+        <HomeStatsSection />
+      </section>
+
       {/* Trending Games Section */}
       <section className="py-12 overflow-visible">
         <div className="flex items-center gap-2 mb-1">
