@@ -75,7 +75,7 @@ describe('LevelsService', () => {
         updatedBy: null,
       });
 
-      const betAmount = 1000n;
+      const betAmount = 1000;
       const xp = await service.calculateXPFromBet(betAmount, GameType.MINES);
 
       // XP = 1000 * 1.0 * 0.01 * 1.0 = 10
@@ -92,7 +92,7 @@ describe('LevelsService', () => {
         updatedBy: null,
       });
 
-      const betAmount = 1000n;
+      const betAmount = 1000;
       const xp = await service.calculateXPFromBet(betAmount, GameType.MINES);
 
       // XP = 1000 * 1.0 * 0.01 * 2.0 = 20
@@ -109,7 +109,7 @@ describe('LevelsService', () => {
         updatedBy: null,
       });
 
-      const betAmount = 1000n;
+      const betAmount = 1000;
       const xp = await service.calculateXPFromBet(betAmount, GameType.MINES);
 
       // XP = 1000 * 1.5 * 0.01 * 1.0 = 15

@@ -18,3 +18,4 @@ export class StartMinesBetDto {
   clientSeed?: string;
 }
 
+
