@@ -4,6 +4,7 @@ import { LevelsService } from '../levels/levels.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { updateUserBalance, fromCentesimi } from '../common/utils/balance.util';
 import { UserRole } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AdminService {
@@ -689,6 +690,99 @@ export class AdminService {
 
     const { passwordHash, ...userWithoutPassword } = updated;
     return userWithoutPassword;
+  }
+
+  async createTestUsers() {
+    const users = [
+      { username: 'test1', email: 'test1@test.com', password: 'test123' },
+      { username: 'test2', email: 'test2@test.com', password: 'test123' },
+      { username: 'test3', email: 'test3@test.com', password: 'test123' },
+      { username: 'test4', email: 'test4@test.com', password: 'test123' },
+      { username: 'test5', email: 'test5@test.com', password: 'test123' },
+    ];
+
+    const results = [];
+
+    for (const userData of users) {
+      try {
+        // Check if user already exists
+        const existing = await this.prisma.user.findUnique({
+          where: { username: userData.username.toLowerCase() },
+        });
+
+        if (existing) {
+          results.push({
+            username: userData.username,
+            status: 'skipped',
+            message: 'User already exists',
+            userId: existing.id,
+          });
+          continue;
+        }
+
+        // Hash password
+        const passwordHash = await bcrypt.hash(userData.password, 10);
+
+        // Create user with transaction
+        const result = await this.prisma.$transaction(async (tx) => {
+          // Create user
+          const user = await tx.user.create({
+            data: {
+              username: userData.username.toLowerCase(),
+              email: userData.email.toLowerCase(),
+              passwordHash,
+              displayName: userData.username,
+              isActive: true,
+              ageConfirmed: true,
+              ageConfirmedAt: new Date(),
+            },
+          });
+
+          // Create user balance with initial balance (10,000 FUN = 1,000,000 centesimi)
+          await tx.userBalance.create({
+            data: {
+              userId: user.id,
+              balance: BigInt(1000000),
+              lockedBalance: BigInt(0),
+            },
+          });
+
+          // Create user level
+          await tx.userLevel.create({
+            data: {
+              userId: user.id,
+              level: 1,
+              xp: new Decimal(0),
+              totalXpEarned: new Decimal(0),
+            },
+          });
+
+          return user;
+        });
+
+        results.push({
+          username: userData.username,
+          status: 'created',
+          message: 'User created successfully',
+          userId: result.id,
+        });
+      } catch (error: any) {
+        results.push({
+          username: userData.username,
+          status: 'error',
+          message: error.message || 'Unknown error',
+        });
+      }
+    }
+
+    return {
+      message: 'Test users creation completed',
+      results,
+      credentials: {
+        username: 'test1, test2, test3, test4, or test5',
+        password: 'test123',
+      },
+    };
   }
 }
 

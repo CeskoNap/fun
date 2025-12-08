@@ -112,6 +112,12 @@ export function Sidebar() {
       href: "/",
     },
     {
+      id: "races",
+      label: "Races",
+      icon: TrophyIcon,
+      href: "/races",
+    },
+    {
       id: "faucet",
       label: "Fun Faucet",
       icon: BeakerIcon,
@@ -147,7 +153,7 @@ export function Sidebar() {
     {
       id: "levels",
       label: "Fun Levels",
-      icon: TrophyIcon,
+      icon: ChartBarIcon,
       href: "/levels",
     },
     {

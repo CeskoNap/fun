@@ -145,6 +145,11 @@ export class AdminController {
   // USER MANAGEMENT
   // ============================================
 
+  @Post('create-test-users')
+  async createTestUsers(@CurrentUser() adminId: string) {
+    return this.adminService.createTestUsers();
+  }
+
   @Get('users')
   async listUsers(
     @Query('page') page?: string,

@@ -53,6 +53,14 @@ export class RacesService {
   // ============================
 
   async getActiveRaces(userId: string) {
+    const now = new Date();
+    
+    // First, check and activate races that should be active
+    await this.activateDueRaces(now);
+    
+    // Also check and end races that should be ended
+    await this.endDueRaces(now);
+
     const races = await this.prisma.race.findMany({
       where: {
         status: {
@@ -83,6 +91,63 @@ export class RacesService {
         volume: participant ? participant.volume.toString() : '0',
       };
     });
+  }
+
+  async activateDueRaces(now: Date) {
+    // Find races that should be activated (UPCOMING and startsAt <= now)
+    const racesToActivate = await this.prisma.race.findMany({
+      where: {
+        status: RaceStatus.UPCOMING,
+        startsAt: {
+          lte: now,
+        },
+        endsAt: {
+          gt: now, // Only activate if not already ended
+        },
+      },
+    });
+
+    if (racesToActivate.length > 0) {
+      await this.prisma.race.updateMany({
+        where: {
+          id: {
+            in: racesToActivate.map(r => r.id),
+          },
+        },
+        data: {
+          status: RaceStatus.ACTIVE,
+        },
+      });
+      
+      console.log(`Activated ${racesToActivate.length} race(s) automatically`);
+    }
+  }
+
+  async endDueRaces(now: Date) {
+    // Find races that should be ended (ACTIVE and endsAt <= now)
+    const racesToEnd = await this.prisma.race.findMany({
+      where: {
+        status: RaceStatus.ACTIVE,
+        endsAt: {
+          lte: now,
+        },
+      },
+    });
+
+    if (racesToEnd.length > 0) {
+      await this.prisma.race.updateMany({
+        where: {
+          id: {
+            in: racesToEnd.map(r => r.id),
+          },
+        },
+        data: {
+          status: RaceStatus.ENDED,
+        },
+      });
+      
+      console.log(`Ended ${racesToEnd.length} race(s) automatically`);
+    }
   }
 
   async joinRace(userId: string, raceId: string) {
@@ -283,9 +348,6 @@ export class RacesService {
       throw new BadRequestException('Race cannot be settled in current status');
     }
 
-    const cfg = await this.getDefaultRaceConfig();
-    const dist = cfg.prizeDistribution as unknown as PrizeDistributionConfig;
-
     const participants = race.participants;
     const totalParticipants = participants.length;
     const prizePoolCheck = race.prizePool as bigint;
@@ -298,29 +360,53 @@ export class RacesService {
       return { settled: false, reason: 'No participants or prize pool' };
     }
 
-    const topWinners = Math.ceil(
-      (totalParticipants * (dist.topPercentageWinners ?? 25)) / 100,
-    );
-
     const winners: { index: number; prize: bigint }[] = [];
     const prizePool = race.prizePool as bigint;
 
-    for (const tier of dist.tiers) {
-      let { rankStart, rankEnd, percentage } = tier;
-      if (rankStart > topWinners) continue;
-      rankEnd = Math.min(rankEnd, topWinners);
-      if (rankStart > rankEnd) continue;
+    // Fixed prize distribution:
+    // - 25% to 1st place
+    // - 15% to 2nd place
+    // - 10% to 3rd place
+    // - 20% divided among 4th-10th place (7 positions)
+    // - 30% divided among 11th-50th place (40 positions)
 
-      const countInTier = rankEnd - rankStart + 1;
-      // Calculate tier pool: prizePool * percentage / 100 (using integer math)
-      const tierPool = (prizePool * BigInt(percentage)) / 100n;
-      // Calculate prize per user: tierPool / countInTier (rounded down)
-      const prizePerUser = tierPool / BigInt(countInTier);
+    // 1st place: 25%
+    if (totalParticipants >= 1) {
+      const prize1st = (prizePool * 25n) / 100n;
+      winners.push({ index: 0, prize: prize1st });
+    }
 
-      for (let rank = rankStart; rank <= rankEnd; rank++) {
+    // 2nd place: 15%
+    if (totalParticipants >= 2) {
+      const prize2nd = (prizePool * 15n) / 100n;
+      winners.push({ index: 1, prize: prize2nd });
+    }
+
+    // 3rd place: 10%
+    if (totalParticipants >= 3) {
+      const prize3rd = (prizePool * 10n) / 100n;
+      winners.push({ index: 2, prize: prize3rd });
+    }
+
+    // 4th-10th place: 20% divided among 7 positions
+    const positions4to10 = Math.min(7, Math.max(0, totalParticipants - 3));
+    if (positions4to10 > 0) {
+      const tierPool4to10 = (prizePool * 20n) / 100n;
+      const prizePerUser4to10 = tierPool4to10 / BigInt(positions4to10);
+      for (let rank = 4; rank <= Math.min(10, totalParticipants); rank++) {
         const idx = rank - 1;
-        if (idx >= totalParticipants) break;
-        winners.push({ index: idx, prize: prizePerUser });
+        winners.push({ index: idx, prize: prizePerUser4to10 });
+      }
+    }
+
+    // 11th-50th place: 30% divided among up to 40 positions
+    const positions11to50 = Math.min(40, Math.max(0, totalParticipants - 10));
+    if (positions11to50 > 0) {
+      const tierPool11to50 = (prizePool * 30n) / 100n;
+      const prizePerUser11to50 = tierPool11to50 / BigInt(positions11to50);
+      for (let rank = 11; rank <= Math.min(50, totalParticipants); rank++) {
+        const idx = rank - 1;
+        winners.push({ index: idx, prize: prizePerUser11to50 });
       }
     }
 

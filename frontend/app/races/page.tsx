@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { apiClient, ApiError } from "../../src/lib/apiClient";
 import { useStore } from "../../src/store/useStore";
 import { useToast } from "../../src/components/ToastProvider";
 import { mapErrorKey } from "../../src/lib/errorMapping";
 import { useI18n } from "../../src/i18n/useI18n";
+import { useUserSocket } from "../../src/hooks/useUserSocket";
 
 interface RaceSummary {
   id: string;
@@ -34,27 +35,63 @@ interface LeaderboardResponse {
   participants: LeaderboardItem[];
 }
 
-function formatTimeDiff(targetIso: string): string {
-  const target = new Date(targetIso).getTime();
-  const now = Date.now();
-  const diffMs = target - now;
-  if (isNaN(diffMs)) return "-";
-  const future = diffMs > 0;
-  const ms = Math.abs(diffMs);
-  const minutes = Math.floor(ms / (1000 * 60)) % 60;
-  const hours = Math.floor(ms / (1000 * 60 * 60));
-  if (hours <= 0 && minutes <= 0) {
-    return future ? "now" : "ended";
+function formatTimeDiff(targetIso: string, status?: string): string {
+  try {
+    // Parse the ISO string (UTC) and convert to Italian timezone for display
+    const target = new Date(targetIso);
+    const now = new Date();
+    
+    if (isNaN(target.getTime())) {
+      console.error("Invalid date:", targetIso);
+      return "-";
+    }
+    
+    // Both dates are in UTC, so the difference is correct
+    const diffMs = target.getTime() - now.getTime();
+    const future = diffMs > 0;
+    const ms = Math.abs(diffMs);
+    
+    // If the date is in the past
+    if (!future) {
+      // If status is UPCOMING but date is past, it means the race should start soon or is delayed
+      if (status === "UPCOMING") {
+        return "starting soon";
+      }
+      // Otherwise it's ended
+      return "ended";
+    }
+    
+    // If less than 1 minute in the future, show "now"
+    if (ms < 60000) {
+      return "now";
+    }
+    
+    const totalMinutes = Math.floor(ms / (1000 * 60));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    const days = Math.floor(hours / 24);
+    const remainingHours = hours % 24;
+    
+    if (days > 0) {
+      return `${days}d ${remainingHours}h`;
+    } else if (hours > 0) {
+      return `${hours}h ${minutes > 0 ? `${minutes}m` : ""}`.trim();
+    } else if (minutes > 0) {
+      return `${minutes}m`;
+    } else {
+      return "now";
+    }
+  } catch (e) {
+    console.error("Error in formatTimeDiff:", e, targetIso);
+    return "-";
   }
-  const hPart = hours > 0 ? `${hours}h ` : "";
-  const mPart = `${minutes}m`;
-  return `${hPart}${mPart}`;
 }
 
 export default function RacesPage() {
   const { balance, fetchLevelAndBalance } = useStore();
   const { addToast } = useToast();
   const { t } = useI18n();
+  useUserSocket(); // Initialize websocket connection
 
   const [races, setRaces] = useState<RaceSummary[]>([]);
   const [racesError, setRacesError] = useState<string | null>(null);
@@ -65,25 +102,27 @@ export default function RacesPage() {
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
 
   const [joiningRaceId, setJoiningRaceId] = useState<string | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    loadRaces();
-  }, []);
-
-  const loadRaces = async () => {
+  const loadRaces = useCallback(async () => {
     setLoadingRaces(true);
     setRacesError(null);
     try {
       const data = await apiClient.get<RaceSummary[]>("/races/active");
+      // Log dates for debugging
+      data.forEach(race => {
+        console.log(`Race ${race.name}: startsAt="${race.startsAt}", parsed=${new Date(race.startsAt).toLocaleString()}, now=${new Date().toLocaleString()}`);
+      });
       setRaces(data);
     } catch (e: any) {
       setRacesError(t("errors.generic"));
+      console.error("Error loading races:", e);
     } finally {
       setLoadingRaces(false);
     }
-  };
+  }, [t]);
 
-  const loadLeaderboard = async (raceId: string) => {
+  const loadLeaderboard = useCallback(async (raceId: string) => {
     setSelectedRaceId(raceId);
     setLeaderboard(null);
     setLeaderboardError(null);
@@ -93,7 +132,38 @@ export default function RacesPage() {
     } catch (e: any) {
       setLeaderboardError(t("errors.generic"));
     }
-  };
+  }, [t]);
+
+  useEffect(() => {
+    loadRaces();
+
+    // Setup polling to refresh race data every 5 seconds
+    pollingIntervalRef.current = setInterval(() => {
+      loadRaces();
+      if (selectedRaceId) {
+        loadLeaderboard(selectedRaceId);
+      }
+    }, 5000);
+
+    // Also listen to bet:resolved events via custom event (emitted by useUserSocket)
+    const handleBetResolved = () => {
+      console.log("Bet resolved, updating races...");
+      loadRaces();
+      if (selectedRaceId) {
+        loadLeaderboard(selectedRaceId);
+      }
+    };
+
+    // Listen to custom event that will be emitted when bet is resolved
+    window.addEventListener('race:update', handleBetResolved);
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+      window.removeEventListener('race:update', handleBetResolved);
+    };
+  }, [loadRaces, loadLeaderboard, selectedRaceId]);
 
   const handleJoin = async (race: RaceSummary) => {
     if (race.joined) return;
@@ -110,7 +180,7 @@ export default function RacesPage() {
         await fetchLevelAndBalance();
         addToast({
           type: "success",
-          message: `Joined race ${race.name} (entry ${Math.round(parseFloat(data.entryFee)).toLocaleString()} FUN)`,
+          message: `Joined race ${race.name} (entry ${Math.round(parseFloat(data.entryFee) / 100).toLocaleString()} FUN)`,
         });
       } else {
         addToast({
@@ -191,18 +261,19 @@ export default function RacesPage() {
                   </div>
                   <div className="text-xs text-zinc-500 mt-1 space-y-0.5">
                     <div>
-                      Entry fee: {Math.round(parseFloat(race.entryFee)).toLocaleString()} FUN • Prize pool: {Math.round(parseFloat(race.prizePool)).toLocaleString()} FUN
+                      Entry fee: {Math.round(parseFloat(race.entryFee) / 100).toLocaleString()} FUN • Prize pool: {Math.round(parseFloat(race.prizePool) / 100).toLocaleString()} FUN
                     </div>
                     <div>
                       Status: {race.status} •{" "}
                       {race.status === "ACTIVE"
-                        ? `Ends in ${formatTimeDiff(race.endsAt)}`
-                        : `Starts in ${formatTimeDiff(race.startsAt)}`}
+                        ? `Ends in ${formatTimeDiff(race.endsAt, race.status)}`
+                        : `Starts in ${formatTimeDiff(race.startsAt, race.status)}`}
                     </div>
                   </div>
                   {race.joined && (
                     <div className="text-xs text-emerald-400">
-                      Joined • Volume: {Math.round(parseFloat(race.volume || "0")).toLocaleString()} FUN
+                      Joined • Volume: {Math.round(parseFloat(race.volume || "0") / 100).toLocaleString()} FUN
+                      {race.status === "ACTIVE" && " (updating...)"}
                     </div>
                   )}
                 </div>
@@ -219,7 +290,7 @@ export default function RacesPage() {
                       ? "Joined"
                       : joiningRaceId === race.id
                       ? "Joining..."
-                      : "Join Race (100 FUN)"}
+                      : `Join Race (${Math.round(parseFloat(race.entryFee) / 100).toLocaleString()} FUN)`}
                   </button>
                   <button
                     onClick={(e) => {
@@ -262,13 +333,13 @@ export default function RacesPage() {
                     #{p.rank} {p.username}
                   </div>
                   <div className="text-xs text-zinc-500">
-                    Volume: {Math.round(parseFloat(p.volume || "0")).toLocaleString()} FUN
+                    Volume: {Math.round(parseFloat(p.volume || "0") / 100).toLocaleString()} FUN
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-xs text-zinc-500">Prize</div>
                   <div className="text-sm font-semibold text-accent">
-                    {p.prize ? `${Math.round(parseFloat(p.prize)).toLocaleString()} FUN` : "-"}
+                    {p.prize ? `${Math.round(parseFloat(p.prize) / 100).toLocaleString()} FUN` : "-"}
                   </div>
                 </div>
               </div>

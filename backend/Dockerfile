@@ -1,6 +1,7 @@
 FROM node:20-slim
 
 # Install pnpm and required build tools for native modules
+# Also install tzdata for timezone support
 RUN npm install -g pnpm && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -8,8 +9,13 @@ RUN npm install -g pnpm && \
     make \
     g++ \
     openssl \
-    ca-certificates && \
+    ca-certificates \
+    tzdata && \
     rm -rf /var/lib/apt/lists/*
+
+# Set timezone to Italian timezone
+ENV TZ=Europe/Rome
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Set working directory
 WORKDIR /app

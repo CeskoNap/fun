@@ -10,6 +10,7 @@ export class RacesController {
   @Get('active')
   @UseGuards(AuthGuard)
   async getActiveRaces(@CU() userId: string) {
+    // This will automatically activate races that are due
     return this.racesService.getActiveRaces(userId);
   }
 

@@ -6,6 +6,7 @@ services:
       POSTGRES_USER: fun_user
       POSTGRES_PASSWORD: fun_password
       POSTGRES_DB: fun_dev
+      TZ: Europe/Rome
     ports:
       - "5432:5432"
     volumes:
@@ -29,6 +30,7 @@ services:
       WHEEL_SECRET: ${WHEEL_SECRET:-default-secret-change-in-production}
       NODE_ENV: development
       PNPM_DANGEROUSLY_ALLOW_ALL_BUILDS: "true"
+      TZ: Europe/Rome
     ports:
       - "3001:3001"
     depends_on:

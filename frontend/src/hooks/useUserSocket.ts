@@ -85,6 +85,11 @@ export function useUserSocket() {
             message: `You lost ${Math.round(parseFloat(payload.amount)).toLocaleString()} FUN on ${payload.gameType}.`,
           });
         }
+        
+        // Emit custom event for race page to update volume
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent('race:update'));
+        }
       }
     );
 
