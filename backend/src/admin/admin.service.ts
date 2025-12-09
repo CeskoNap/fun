@@ -438,7 +438,13 @@ export class AdminService {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [
+          {
+            balance: {
+              balance: 'desc',
+            },
+          },
+        ],
         select: {
           id: true,
           username: true,
@@ -599,7 +605,7 @@ export class AdminService {
     return updated;
   }
 
-  async giveTokens(userId: string, adminId: string, amount: number, reason?: string) {
+  async giveTokens(userId: string, adminId: string, amount: number, reason?: string, sendNotification?: boolean) {
     if (amount <= 0) {
       throw new BadRequestException('Amount must be positive');
     }
@@ -637,6 +643,25 @@ export class AdminService {
       },
     });
 
+    // Create notification if requested
+    if (sendNotification) {
+      await this.prisma.notification.create({
+        data: {
+          userId,
+          title: 'Balance Updated',
+          message: `You received ${amount.toFixed(2)} FUN${reason ? `: ${reason}` : ''}.`,
+          type: 'balance_adjustment',
+          read: false,
+          metadata: {
+            amount: amount.toFixed(2),
+            type: 'credit',
+            reason: reason || null,
+            adminId,
+          },
+        },
+      });
+    }
+
     return {
       userId,
       amount: amount.toFixed(2),
@@ -646,32 +671,203 @@ export class AdminService {
     };
   }
 
-  async updateUser(userId: string, adminId: string, data: { role?: string; displayName?: string; language?: string }) {
+  async deductTokens(userId: string, adminId: string, amount: number, reason?: string, sendNotification?: boolean) {
+    if (amount <= 0) {
+      throw new BadRequestException('Amount must be positive');
+    }
+
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    // Prevent changing own role or banning self
+    // Check if user has sufficient balance
+    const balance = await this.prisma.userBalance.findUnique({
+      where: { userId },
+    });
+    const currentBalance = balance ? (balance.balance as bigint) : 0n;
+    const amountInCentesimi = BigInt(Math.round(amount * 100));
+    
+    if (currentBalance < amountInCentesimi) {
+      throw new BadRequestException('Insufficient balance');
+    }
+
+    // Pass negative amount to deduct
+    const result = await updateUserBalance(
+      this.prisma,
+      userId,
+      -amount,
+      'ADMIN_ADJUSTMENT',
+      {
+        reason: reason || 'Admin token deduction',
+        adminId,
+      },
+    );
+
+    await this.prisma.adminActionLog.create({
+      data: {
+        adminId,
+        targetUserId: userId,
+        action: 'deduct_tokens',
+        details: {
+          amount: amount.toFixed(2),
+          reason,
+          balanceBefore: fromCentesimi(result.balanceBefore).toFixed(2),
+          balanceAfter: fromCentesimi(result.balanceAfter).toFixed(2),
+        },
+      },
+    });
+
+    // Create notification if requested
+    if (sendNotification) {
+      await this.prisma.notification.create({
+        data: {
+          userId,
+          title: 'Balance Updated',
+          message: `${amount.toFixed(2)} FUN was deducted from your balance${reason ? `: ${reason}` : ''}.`,
+          type: 'balance_adjustment',
+          read: false,
+          metadata: {
+            amount: amount.toFixed(2),
+            type: 'debit',
+            reason: reason || null,
+            adminId,
+          },
+        },
+      });
+    }
+
+    return {
+      userId,
+      amount: amount.toFixed(2),
+      balanceBefore: fromCentesimi(result.balanceBefore).toFixed(2),
+      balanceAfter: fromCentesimi(result.balanceAfter).toFixed(2),
+      transactionId: result.transactionId,
+    };
+  }
+
+  async updateUser(
+    userId: string, 
+    adminId: string, 
+    data: { 
+      role?: string; 
+      displayName?: string; 
+      language?: string;
+      username?: string;
+      email?: string;
+      level?: number;
+    }
+  ) {
+    const user = await this.prisma.user.findUnique({ 
+      where: { id: userId },
+      include: { userLevel: true },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Prevent changing own role
     if (userId === adminId && data.role && data.role !== user.role) {
       throw new BadRequestException('Cannot change your own role');
     }
 
     const updateData: any = {};
+    
+    // Update username
+    if (data.username !== undefined) {
+      const normalizedUsername = data.username.toLowerCase().trim();
+      if (normalizedUsername.length < 3) {
+        throw new BadRequestException('Username must be at least 3 characters');
+      }
+      // Check if username is already taken by another user
+      const existingUser = await this.prisma.user.findFirst({
+        where: {
+          username: normalizedUsername,
+          id: { not: userId },
+        },
+      });
+      if (existingUser) {
+        throw new BadRequestException('Username already taken');
+      }
+      updateData.username = normalizedUsername;
+    }
+
+    // Update email
+    if (data.email !== undefined) {
+      if (data.email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(data.email)) {
+          throw new BadRequestException('Invalid email format');
+        }
+        const normalizedEmail = data.email.toLowerCase().trim();
+        // Check if email is already taken by another user
+        const existingUser = await this.prisma.user.findFirst({
+          where: {
+            email: normalizedEmail,
+            id: { not: userId },
+          },
+        });
+        if (existingUser) {
+          throw new BadRequestException('Email already taken');
+        }
+        updateData.email = normalizedEmail;
+      } else {
+        updateData.email = null;
+      }
+    }
+
+    // Update role
     if (data.role !== undefined) {
       if (!['USER', 'MODERATOR', 'ADMIN'].includes(data.role)) {
         throw new BadRequestException('Invalid role');
       }
       updateData.role = data.role as UserRole;
     }
+    
     if (data.displayName !== undefined) {
       updateData.displayName = data.displayName;
     }
+    
     if (data.language !== undefined) {
       if (!['en', 'it'].includes(data.language)) {
         throw new BadRequestException('Invalid language');
       }
       updateData.language = data.language;
+    }
+
+    // Update level
+    if (data.level !== undefined) {
+      if (data.level < 1) {
+        throw new BadRequestException('Level must be at least 1');
+      }
+      // Get level config to validate
+      const levelConfig = await this.prisma.levelConfig.findUnique({
+        where: { level: data.level },
+      });
+      if (!levelConfig) {
+        throw new BadRequestException(`Level ${data.level} does not exist`);
+      }
+
+      // Update user level
+      const userLevel = user.userLevel;
+      if (userLevel) {
+        await this.prisma.userLevel.update({
+          where: { userId },
+          data: {
+            level: data.level,
+            xp: new Decimal(0), // Reset XP when level is manually set
+          },
+        });
+      } else {
+        await this.prisma.userLevel.create({
+          data: {
+            userId,
+            level: data.level,
+            xp: new Decimal(0),
+            totalXpEarned: new Decimal(0),
+          },
+        });
+      }
     }
 
     const updated = await this.prisma.user.update({
@@ -690,6 +886,50 @@ export class AdminService {
 
     const { passwordHash, ...userWithoutPassword } = updated;
     return userWithoutPassword;
+  }
+
+  async getUserTransactions(userId: string, page: number = 1, limit: number = 50) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const skip = (page - 1) * limit;
+    const take = Math.min(limit, 100); // Max 100 per page
+
+    const [transactions, total] = await Promise.all([
+      this.prisma.transaction.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.transaction.count({
+        where: { userId },
+      }),
+    ]);
+
+    return {
+      transactions: transactions.map(t => {
+        const metadata = t.metadata as any || {};
+        return {
+          id: t.id,
+          type: t.type,
+          amount: fromCentesimi(t.amount as bigint).toFixed(2),
+          balanceBefore: fromCentesimi(t.balanceBefore as bigint).toFixed(2),
+          balanceAfter: fromCentesimi(t.balanceAfter as bigint).toFixed(2),
+          gameType: metadata.gameType || null,
+          metadata: t.metadata,
+          createdAt: t.createdAt,
+        };
+      }),
+      pagination: {
+        page,
+        limit: take,
+        total,
+        totalPages: Math.ceil(total / take),
+      },
+    };
   }
 
   async createTestUsers() {

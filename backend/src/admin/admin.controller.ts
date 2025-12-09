@@ -176,9 +176,13 @@ export class AdminController {
   async banUser(
     @CurrentUser() adminId: string,
     @Param('id') userId: string,
-    @Body() body: { reason?: string; until?: string },
+    @Body() body: { reason?: string; until?: string | null; permanent?: boolean },
   ) {
-    return this.adminService.banUser(userId, adminId, body.reason, body.until);
+    // If permanent is true, set until to null (permanent ban)
+    // If until is provided, use that date
+    // Otherwise, ban is permanent (null)
+    const until = body.permanent ? null : (body.until || null);
+    return this.adminService.banUser(userId, adminId, body.reason, until);
   }
 
   @Post('users/:id/unban')
@@ -190,18 +194,45 @@ export class AdminController {
   async giveTokens(
     @CurrentUser() adminId: string,
     @Param('id') userId: string,
-    @Body() body: { amount: number; reason?: string },
+    @Body() body: { amount: number; reason?: string; sendNotification?: boolean },
   ) {
-    return this.adminService.giveTokens(userId, adminId, body.amount, body.reason);
+    return this.adminService.giveTokens(userId, adminId, body.amount, body.reason, body.sendNotification);
+  }
+
+  @Post('users/:id/deduct-tokens')
+  async deductTokens(
+    @CurrentUser() adminId: string,
+    @Param('id') userId: string,
+    @Body() body: { amount: number; reason?: string; sendNotification?: boolean },
+  ) {
+    return this.adminService.deductTokens(userId, adminId, body.amount, body.reason, body.sendNotification);
   }
 
   @Put('users/:id')
   async updateUser(
     @CurrentUser() adminId: string,
     @Param('id') userId: string,
-    @Body() body: { role?: string; displayName?: string; language?: string },
+    @Body() body: { 
+      role?: string; 
+      displayName?: string; 
+      language?: string;
+      username?: string;
+      email?: string;
+      level?: number;
+    },
   ) {
     return this.adminService.updateUser(userId, adminId, body);
+  }
+
+  @Get('users/:id/transactions')
+  async getUserTransactions(
+    @Param('id') userId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 50;
+    return this.adminService.getUserTransactions(userId, pageNum, limitNum);
   }
 }
 
