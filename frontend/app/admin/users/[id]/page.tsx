@@ -28,8 +28,8 @@ type TabType = "edit" | "ban" | "tokens" | "transactions";
 const tabs = [
   { id: "edit" as TabType, label: "Edit Info", icon: UserIcon },
   { id: "ban" as TabType, label: "Ban/Unban", icon: NoSymbolIcon },
-  { id: "tokens" as TabType, label: "Balance", icon: CurrencyDollarIcon },
-  { id: "transactions" as TabType, label: "Transactions", icon: ListBulletIcon },
+  { id: "tokens" as TabType, label: "Fun Balances", icon: CurrencyDollarIcon },
+  { id: "transactions" as TabType, label: "Fun Transactions", icon: ListBulletIcon },
 ];
 
 export default function AdminUserEditPage() {
@@ -74,6 +74,8 @@ export default function AdminUserEditPage() {
   // Transactions
   const [transactions, setTransactions] = useState<any[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [selectedGameFilter, setSelectedGameFilter] = useState<string>("ALL");
+  const [searchId, setSearchId] = useState<string>("");
 
   useEffect(() => {
     loadUser();
@@ -84,6 +86,14 @@ export default function AdminUserEditPage() {
       loadTransactions();
     }
   }, [activeTab, user?.id]);
+
+  // Reset game filter when switching away from transactions tab
+  useEffect(() => {
+    if (activeTab !== "transactions") {
+      setSelectedGameFilter("ALL");
+      setSearchId("");
+    }
+  }, [activeTab]);
 
   const loadUser = async () => {
     setLoading(true);
@@ -129,7 +139,7 @@ export default function AdminUserEditPage() {
       const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
       const token = localStorage.getItem("auth_token");
 
-      const res = await fetch(`${API_BASE}/admin/users/${user.id}/transactions?limit=100`, {
+      const res = await fetch(`${API_BASE}/admin/users/${user.id}/transactions?limit=1000`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -359,14 +369,16 @@ export default function AdminUserEditPage() {
     switch (activeTab) {
       case "edit":
         return (
-          <div className="space-y-4 max-w-2xl">
+          <div className="space-y-6 max-w-2xl">
+            <h2 className="text-lg font-semibold text-white mb-4">Edit Info</h2>
+            <div className="space-y-3">
                     <div>
                       <label className="block text-xs text-zinc-400 mb-1">Username</label>
                       <input
                         type="text"
                         value={editData.username}
                         onChange={(e) => setEditData({ ...editData, username: e.target.value })}
-                        className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full px-3 py-1 rounded-md text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent"
                         style={{ backgroundColor: "#E8F0FE" }}
                         placeholder="Username"
                       />
@@ -377,7 +389,7 @@ export default function AdminUserEditPage() {
                         type="email"
                         value={editData.email}
                         onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-                        className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full px-3 py-1 rounded-md text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent"
                         style={{ backgroundColor: "#E8F0FE" }}
                         placeholder="Email (optional)"
                       />
@@ -387,7 +399,7 @@ export default function AdminUserEditPage() {
                       <select
                         value={editData.role}
                         onChange={(e) => setEditData({ ...editData, role: e.target.value })}
-                        className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full px-3 py-1 rounded-md text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent"
                         style={{ backgroundColor: "#E8F0FE" }}
                       >
                         <option value="USER">USER</option>
@@ -401,7 +413,7 @@ export default function AdminUserEditPage() {
                         type="number"
                         value={editData.level}
                         onChange={(e) => setEditData({ ...editData, level: e.target.value })}
-                        className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full px-3 py-1 rounded-md text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent"
                         style={{ backgroundColor: "#E8F0FE" }}
                         placeholder="Level"
                         min="1"
@@ -410,17 +422,20 @@ export default function AdminUserEditPage() {
             <div className="flex gap-3">
               <button
                 onClick={handleEditUser}
-                className="px-6 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+                className="px-4 py-1.5 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700"
               >
                 Save Changes
               </button>
+            </div>
             </div>
           </div>
         );
 
       case "ban":
         return (
-          <div className="space-y-4 max-w-2xl">
+          <div className="space-y-6 max-w-2xl">
+            <h2 className="text-lg font-semibold text-white mb-4">Ban/Unban</h2>
+            <div className="space-y-3">
             {user.isBanned ? (
               <div>
                 <p className="text-sm text-zinc-300 mb-4">
@@ -430,8 +445,8 @@ export default function AdminUserEditPage() {
                   )}
                 </p>
                 <button
-                  onClick={handleUnban}
-                  className="px-6 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
+                    onClick={handleUnban}
+                  className="px-4 py-1.5 bg-green-600 text-white text-xs rounded-md hover:bg-green-700"
                 >
                   Unban User
                 </button>
@@ -444,7 +459,7 @@ export default function AdminUserEditPage() {
                             type="text"
                             value={banReason}
                             onChange={(e) => setBanReason(e.target.value)}
-                            className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                            className="w-full px-3 py-1 rounded-md text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent"
                             style={{ backgroundColor: "#E8F0FE" }}
                             placeholder="Ban reason..."
                           />
@@ -472,7 +487,7 @@ export default function AdminUserEditPage() {
                               type="datetime-local"
                               value={banUntil}
                               onChange={(e) => setBanUntil(e.target.value)}
-                              className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                              className="w-full px-3 py-1 rounded-md text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent"
                               style={{ backgroundColor: "#E8F0FE" }}
                             />
                           </div>
@@ -480,22 +495,24 @@ export default function AdminUserEditPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={handleBan}
-                    className="px-6 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
+                    className="px-4 py-1.5 bg-red-600 text-white text-xs rounded-md hover:bg-red-700"
                   >
                     {banPermanent ? "Ban Permanently" : "Ban User"}
                   </button>
                 </div>
               </>
             )}
+            </div>
           </div>
         );
 
       case "tokens":
         return (
           <div className="space-y-6 max-w-4xl">
+            <h2 className="text-lg font-semibold text-white mb-4">Fun Balances</h2>
             {/* Current Balance */}
             <div className="bg-zinc-800 rounded-md p-4">
-              <div className="text-xs text-zinc-400 mb-1">Current Balance</div>
+              <div className="text-xs text-zinc-400 mb-1">{user.username} Balance</div>
               <div className="text-sm font-semibold text-accent">
                 {parseFloat(user.balance).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN
               </div>
@@ -504,15 +521,15 @@ export default function AdminUserEditPage() {
             {/* Give and Deduct on same row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Give Tokens */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-white">Give FUN</h3>
+              <div className="space-y-3">
+                <h3 className="text-base font-semibold text-white">Give FUN</h3>
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1">Amount (FUN)</label>
                   <input
                     type="number"
                     value={giveAmount}
                     onChange={(e) => setGiveAmount(e.target.value)}
-                        className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full px-3 py-1 rounded-md text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent"
                     style={{ backgroundColor: "#E8F0FE" }}
                     placeholder="0.00"
                     step="0.01"
@@ -525,7 +542,7 @@ export default function AdminUserEditPage() {
                     type="text"
                     value={giveReason}
                     onChange={(e) => setGiveReason(e.target.value)}
-                        className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full px-3 py-1 rounded-md text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent"
                     style={{ backgroundColor: "#E8F0FE" }}
                     placeholder="Reason for giving tokens..."
                   />
@@ -544,7 +561,7 @@ export default function AdminUserEditPage() {
                 <div>
                   <button
                     onClick={handleGiveTokens}
-                    className="px-6 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
+                    className="px-4 py-1.5 bg-green-600 text-white text-xs rounded-md hover:bg-green-700"
                   >
                     Give FUN
                   </button>
@@ -552,15 +569,15 @@ export default function AdminUserEditPage() {
               </div>
 
               {/* Deduct Tokens */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-white">Deduct FUN</h3>
+              <div className="space-y-3">
+                <h3 className="text-base font-semibold text-white">Deduct FUN</h3>
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1">Amount (FUN)</label>
                   <input
                     type="number"
                     value={deductAmount}
                     onChange={(e) => setDeductAmount(e.target.value)}
-                        className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full px-3 py-1 rounded-md text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent"
                     style={{ backgroundColor: "#E8F0FE" }}
                     placeholder="0.00"
                     step="0.01"
@@ -573,7 +590,7 @@ export default function AdminUserEditPage() {
                     type="text"
                     value={deductReason}
                     onChange={(e) => setDeductReason(e.target.value)}
-                        className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full px-3 py-1 rounded-md text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent"
                     style={{ backgroundColor: "#E8F0FE" }}
                     placeholder="Reason for deducting tokens..."
                   />
@@ -592,7 +609,7 @@ export default function AdminUserEditPage() {
                 <div>
                   <button
                     onClick={handleDeductTokens}
-                    className="px-6 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
+                    className="px-4 py-1.5 bg-red-600 text-white text-xs rounded-md hover:bg-red-700"
                   >
                     Deduct FUN
                   </button>
@@ -603,53 +620,128 @@ export default function AdminUserEditPage() {
         );
 
       case "transactions":
+        // Get unique game types from transactions
+        const gameTypes = Array.from(
+          new Set(
+            transactions
+              .map(tx => tx.gameType)
+              .filter(gt => gt !== null && gt !== undefined && gt !== "")
+          )
+        ).sort() as string[];
+
+        // Filter transactions based on selected game filter and ID search
+        let filteredTransactions = selectedGameFilter === "ALL"
+          ? transactions
+          : transactions.filter(tx => tx.gameType === selectedGameFilter);
+        
+        // Apply ID search filter
+        if (searchId.trim() !== "") {
+          filteredTransactions = filteredTransactions.filter(tx => 
+            tx.sequentialId && tx.sequentialId.toUpperCase().includes(searchId.trim().toUpperCase())
+          );
+        }
+
+        // Create filter tabs: ALL + game types
+        const filterTabs = ["ALL", ...gameTypes];
+
         return (
-          <div>
+          <div className="w-full space-y-4">
+            <h2 className="text-lg font-semibold text-white">Fun Transactions</h2>
+            
+            {/* Debug info - remove in production */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="text-xs text-zinc-500">
+                Total: {transactions.length} | Filtered: {filteredTransactions.length} | Filter: {selectedGameFilter}
+              </div>
+            )}
+            
+            {/* Game Filter Tabs */}
+            {transactions.length > 0 && (
+              <div className="flex gap-2 flex-wrap">
+                {filterTabs.map((gameType) => (
+                  <button
+                    key={gameType}
+                    onClick={() => setSelectedGameFilter(gameType)}
+                    className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      selectedGameFilter === gameType
+                        ? "bg-accent text-black"
+                        : "text-zinc-300 hover:bg-zinc-700"
+                    }`}
+                    style={selectedGameFilter !== gameType ? { backgroundColor: "#27303A" } : undefined}
+                  >
+                    {gameType}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* ID Search */}
+            <div className="w-full">
+              <input
+                type="text"
+                value={searchId}
+                onChange={(e) => setSearchId(e.target.value)}
+                placeholder="Search by ID..."
+                className="w-full px-4 py-1.5 rounded-md text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                style={{ backgroundColor: "#E8F0FE" }}
+              />
+            </div>
+
             {transactionsLoading ? (
               <div className="text-center text-sm text-zinc-400 py-8">Loading transactions...</div>
-            ) : transactions.length === 0 ? (
-              <div className="text-center text-sm text-zinc-400 py-8">No transactions found</div>
+            ) : filteredTransactions.length === 0 ? (
+              <div className="text-center text-sm text-zinc-400 py-8">
+                {transactions.length === 0 
+                  ? "No transactions found" 
+                  : `No transactions found for ${selectedGameFilter}`}
+              </div>
             ) : (
               <div className="bg-zinc-800 rounded-md overflow-hidden">
-                <table className="w-full">
-                  <thead style={{ backgroundColor: "#0F212E" }}>
+                <div 
+                  className="overflow-x-auto max-h-[480px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                  style={{ scrollbarGutter: 'stable' }}
+                >
+                  <table className="w-full table-fixed">
+                  <thead className="sticky top-0 z-10" style={{ backgroundColor: "#0F212E" }}>
                     <tr>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">Type</th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">Game</th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">Amount</th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">Before</th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">After</th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">Date</th>
+                      <th className="px-1.5 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap w-[15%]">ID</th>
+                      <th className="px-1.5 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap w-[5%]">Type</th>
+                      <th className="px-1.5 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap w-[10%]">Game</th>
+                      <th className="px-1.5 py-2 text-center text-xs font-semibold text-zinc-300 whitespace-nowrap w-[17%]">Amount</th>
+                      <th className="px-1.5 py-2 text-center text-xs font-semibold text-zinc-300 whitespace-nowrap w-[17%]">Before</th>
+                      <th className="px-1.5 py-2 text-center text-xs font-semibold text-zinc-300 whitespace-nowrap w-[17%]">After</th>
+                      <th className="px-1.5 py-2 text-center text-xs font-semibold text-zinc-300 whitespace-nowrap w-[19%]">Date</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {transactions.map((tx, index) => {
+                    {filteredTransactions.map((tx, index) => {
                       const date = new Date(tx.createdAt);
                       const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
                       const timeStr = date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
                       return (
                         <tr 
                           key={tx.id} 
-                          className={`border-b border-card/30 whitespace-nowrap ${
+                          className={`whitespace-nowrap ${
                             index % 2 === 0 ? "bg-[#142633]" : "bg-[#0F212E]"
                           }`}
                         >
-                          <td className="px-2 py-2 text-white text-xs">{tx.type}</td>
-                          <td className="px-2 py-2 text-zinc-400 text-xs">
-                            {tx.gameType || "-"}
+                          <td className="px-1.5 py-2 text-zinc-400 text-xs font-mono text-left">{tx.sequentialId || '-'}</td>
+                          <td className="px-1.5 py-2 text-white text-xs text-left">{tx.type === "RACE_ENTRY" ? "FEE" : tx.type}</td>
+                          <td className="px-1.5 py-2 text-zinc-400 text-xs text-left">
+                            {tx.gameType || (tx.type === "RACE_ENTRY" ? "RACE" : "-")}
                           </td>
-                          <td className={`px-2 py-2 text-xs font-semibold ${
+                          <td className={`px-1.5 py-2 text-xs font-semibold text-center ${
                             parseFloat(tx.amount) >= 0 ? "text-green-400" : "text-red-400"
                           }`}>
-                            {parseFloat(tx.amount) >= 0 ? "+" : ""}{parseFloat(tx.amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN
+                            {parseFloat(tx.amount) >= 0 ? "+" : ""}{parseFloat(tx.amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                           </td>
-                          <td className="px-2 py-2 text-zinc-400 text-xs">
-                            {parseFloat(tx.balanceBefore).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN
+                          <td className="px-1.5 py-2 text-zinc-400 text-xs text-center">
+                            {parseFloat(tx.balanceBefore).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                           </td>
-                          <td className="px-2 py-2 text-zinc-400 text-xs">
-                            {parseFloat(tx.balanceAfter).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN
+                          <td className="px-1.5 py-2 text-zinc-400 text-xs text-center">
+                            {parseFloat(tx.balanceAfter).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                           </td>
-                          <td className="px-2 py-2 text-zinc-400 text-xs">
+                          <td className="px-1.5 py-2 text-zinc-400 text-xs text-center">
                             {dateStr} {timeStr}
                           </td>
                         </tr>
@@ -657,6 +749,7 @@ export default function AdminUserEditPage() {
                     })}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
           </div>
@@ -682,7 +775,7 @@ export default function AdminUserEditPage() {
   const activeTabData = tabs.find(tab => tab.id === activeTab);
 
   return (
-    <section className="py-12 overflow-visible">
+    <section className="py-12 overflow-visible" style={{ scrollbarGutter: 'stable' }}>
       <div className="flex gap-6 items-start">
         {/* Left Sidebar */}
         <div className="w-64 bg-card rounded-md p-4 space-y-1 flex-shrink-0 self-start">
@@ -718,11 +811,6 @@ export default function AdminUserEditPage() {
 
         {/* Right Content Area */}
         <div className="flex-1 bg-card rounded-md p-6">
-          {activeTabData && (
-            <h1 className="text-lg font-semibold text-zinc-300 mb-6">
-              {activeTabData.label}
-            </h1>
-          )}
           {renderContent()}
         </div>
       </div>

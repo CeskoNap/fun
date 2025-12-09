@@ -414,3 +414,4 @@ export function GameInfoSection({ gameType, gameName }: GameInfoSectionProps) {
 }
 
 
+

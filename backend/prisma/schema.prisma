@@ -155,6 +155,7 @@ enum TransactionType {
 
 model Transaction {
   id           String          @id @default(uuid())
+  sequentialId String?         @unique // Global sequential alphanumeric ID (e.g., A1, A2, ..., A9, AA, AB, ...)
   userId       String
   type         TransactionType
   amount       BigInt          // Positive for credits, negative for debits (no decimals)
@@ -168,6 +169,7 @@ model Transaction {
   @@index([userId])
   @@index([type])
   @@index([createdAt])
+  @@index([sequentialId])
 }
 
 // ============================================
@@ -626,6 +628,14 @@ model Config {
 
   @@index([key])
   @@index([category])
+}
+
+model TransactionSequence {
+  id        String   @id @default(uuid())
+  nextId    BigInt   @default(1) // Next sequential number (1, 2, 3, ...)
+  updatedAt DateTime @updatedAt
+
+  @@unique([id]) // Only one row should exist
 }
 
 model LevelConfig {

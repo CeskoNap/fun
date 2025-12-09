@@ -49,6 +49,7 @@ export default function AccountPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [selectedGameFilter, setSelectedGameFilter] = useState<string>("ALL");
+  const [searchId, setSearchId] = useState<string>("");
 
   // Check URL parameter for tab
   useEffect(() => {
@@ -62,6 +63,7 @@ export default function AccountPage() {
   useEffect(() => {
     if (activeTab !== "transactions") {
       setSelectedGameFilter("ALL");
+      setSearchId("");
     }
   }, [activeTab]);
 
@@ -351,10 +353,17 @@ export default function AccountPage() {
           )
         ).sort() as string[];
 
-        // Filter transactions based on selected game filter
-        const filteredTransactions = selectedGameFilter === "ALL"
+        // Filter transactions based on selected game filter and ID search
+        let filteredTransactions = selectedGameFilter === "ALL"
           ? transactions
           : transactions.filter(tx => tx.gameType === selectedGameFilter);
+        
+        // Apply ID search filter
+        if (searchId.trim() !== "") {
+          filteredTransactions = filteredTransactions.filter(tx => 
+            tx.sequentialId && tx.sequentialId.toUpperCase().includes(searchId.trim().toUpperCase())
+          );
+        }
 
         // Create filter tabs: ALL + game types
         const filterTabs = ["ALL", ...gameTypes];
@@ -380,14 +389,27 @@ export default function AccountPage() {
                     className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${
                       selectedGameFilter === gameType
                         ? "bg-accent text-black"
-                        : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                        : "text-zinc-300 hover:bg-zinc-700"
                     }`}
+                    style={selectedGameFilter !== gameType ? { backgroundColor: "#27303A" } : undefined}
                   >
                     {gameType}
                   </button>
                 ))}
               </div>
             )}
+
+            {/* ID Search */}
+            <div className="w-full">
+              <input
+                type="text"
+                value={searchId}
+                onChange={(e) => setSearchId(e.target.value)}
+                placeholder="Search by ID..."
+                className="w-full px-4 py-1.5 rounded-md text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                style={{ backgroundColor: "#E8F0FE" }}
+              />
+            </div>
 
             {/* Transactions Table */}
             {transactionsLoading ? (
@@ -400,15 +422,20 @@ export default function AccountPage() {
               </div>
             ) : (
               <div className="bg-zinc-800 rounded-md overflow-hidden">
-                <table className="w-full">
-                  <thead style={{ backgroundColor: "#0F212E" }}>
+                <div 
+                  className="overflow-x-auto max-h-[480px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                  style={{ scrollbarGutter: 'stable' }}
+                >
+                <table className="w-full table-fixed">
+                  <thead className="sticky top-0 z-10" style={{ backgroundColor: "#0F212E" }}>
                     <tr>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">Type</th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">Game</th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">Amount</th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">Before</th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">After</th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">Date</th>
+                      <th className="px-1.5 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap w-[15%]">ID</th>
+                      <th className="px-1.5 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap w-[5%]">Type</th>
+                      <th className="px-1.5 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap w-[10%]">Game</th>
+                      <th className="px-1.5 py-2 text-center text-xs font-semibold text-zinc-300 whitespace-nowrap w-[17%]">Amount</th>
+                      <th className="px-1.5 py-2 text-center text-xs font-semibold text-zinc-300 whitespace-nowrap w-[17%]">Before</th>
+                      <th className="px-1.5 py-2 text-center text-xs font-semibold text-zinc-300 whitespace-nowrap w-[17%]">After</th>
+                      <th className="px-1.5 py-2 text-center text-xs font-semibold text-zinc-300 whitespace-nowrap w-[19%]">Date</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -423,22 +450,23 @@ export default function AccountPage() {
                             index % 2 === 0 ? "bg-[#142633]" : "bg-[#0F212E]"
                           }`}
                         >
-                          <td className="px-2 py-2 text-white text-xs">{tx.type}</td>
-                          <td className="px-2 py-2 text-zinc-400 text-xs">
-                            {tx.gameType || "-"}
+                          <td className="px-1.5 py-2 text-zinc-400 text-xs font-mono text-left">{tx.sequentialId || '-'}</td>
+                          <td className="px-1.5 py-2 text-white text-xs text-left">{tx.type === "RACE_ENTRY" ? "FEE" : tx.type}</td>
+                          <td className="px-1.5 py-2 text-zinc-400 text-xs text-left">
+                            {tx.gameType || (tx.type === "RACE_ENTRY" ? "RACE" : "-")}
                           </td>
-                          <td className={`px-2 py-2 text-xs font-semibold ${
+                          <td className={`px-1.5 py-2 text-xs font-semibold text-center ${
                             parseFloat(tx.amount) >= 0 ? "text-green-400" : "text-red-400"
                           }`}>
-                            {parseFloat(tx.amount) >= 0 ? "+" : ""}{parseFloat(tx.amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN
+                            {parseFloat(tx.amount) >= 0 ? "+" : ""}{parseFloat(tx.amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                           </td>
-                          <td className="px-2 py-2 text-zinc-400 text-xs">
-                            {parseFloat(tx.balanceBefore).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN
+                          <td className="px-1.5 py-2 text-zinc-400 text-xs text-center">
+                            {parseFloat(tx.balanceBefore).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                           </td>
-                          <td className="px-2 py-2 text-zinc-400 text-xs">
-                            {parseFloat(tx.balanceAfter).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN
+                          <td className="px-1.5 py-2 text-zinc-400 text-xs text-center">
+                            {parseFloat(tx.balanceAfter).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                           </td>
-                          <td className="px-2 py-2 text-zinc-400 text-xs">
+                          <td className="px-1.5 py-2 text-zinc-400 text-xs text-center">
                             {dateStr} {timeStr}
                           </td>
                         </tr>
@@ -446,6 +474,7 @@ export default function AccountPage() {
                     })}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
           </div>
@@ -513,11 +542,6 @@ export default function AccountPage() {
 
         {/* Right Content Area */}
         <div className="flex-1 bg-card rounded-md p-6">
-          {activeTabData && (
-            <h1 className="text-lg font-semibold text-zinc-300 mb-6">
-              {activeTabData.label}
-            </h1>
-          )}
           {renderContent()}
         </div>
       </div>

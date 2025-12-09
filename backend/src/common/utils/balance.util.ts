@@ -2,6 +2,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { PrismaClient } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { TransactionType } from '@prisma/client';
+import { getNextSequentialId } from './sequential-id.util';
 
 export interface BalanceUpdateResult {
   balanceBefore: bigint;
@@ -10,7 +11,7 @@ export interface BalanceUpdateResult {
 }
 
 // Type for Prisma client (either PrismaService or transaction client)
-type PrismaClientLike = Pick<PrismaService, 'userBalance' | 'transaction'>;
+type PrismaClientLike = Pick<PrismaService, 'userBalance' | 'transaction' | 'transactionSequence'>;
 
 /**
  * Convert decimal amount (with 2 decimals) to centesimi (BigInt)
@@ -77,10 +78,14 @@ export async function updateUserBalance(
         },
       });
 
+      // Get next sequential ID
+      const sequentialId = await getNextSequentialId(prisma);
+
       // Create transaction log
       const transaction = await prisma.transaction.create({
         data: {
           userId,
+          sequentialId,
           type: transactionType,
           amount: amountBigInt,
           balanceBefore,

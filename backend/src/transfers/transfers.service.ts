@@ -5,6 +5,7 @@ import { TransactionType } from '@prisma/client';
 import { getServerDay } from '../common/utils/server-time.util';
 import { CreateTransferDto } from './dto/create-transfer.dto';
 import { toCentesimi, fromCentesimi, updateUserBalance } from '../common/utils/balance.util';
+import { getNextSequentialId } from '../common/utils/sequential-id.util';
 
 interface TransferLimitsConfig {
   maxTransfersPerDay: number;
@@ -158,9 +159,11 @@ export class TransfersService {
         },
       });
 
+      const sequentialId1 = await getNextSequentialId(tx);
       await tx.transaction.create({
         data: {
           userId: fromUserId,
+          sequentialId: sequentialId1,
           type: TransactionType.TOKEN_TRANSFER_SENT,
           amount: -amountBigInt, // Negative for debit
           balanceBefore: balanceAmount,
@@ -189,9 +192,11 @@ export class TransfersService {
         },
       });
 
+      const sequentialId2 = await getNextSequentialId(tx);
       await tx.transaction.create({
         data: {
           userId: recipient.id,
+          sequentialId: sequentialId2,
           type: TransactionType.TOKEN_TRANSFER_RECEIVED,
           amount: netAmount,
           balanceBefore: recipientBalanceAmount,
@@ -215,9 +220,11 @@ export class TransfersService {
             where: { userId: feeCfg.houseUserId },
             data: { balance: houseAfter },
           });
+          const sequentialId3 = await getNextSequentialId(tx);
           await tx.transaction.create({
             data: {
               userId: feeCfg.houseUserId,
+              sequentialId: sequentialId3,
               type: TransactionType.ADMIN_ADJUSTMENT,
               amount: feeAmount,
               balanceBefore: houseBalanceAmount,

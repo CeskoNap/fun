@@ -914,6 +914,7 @@ export class AdminService {
         const metadata = t.metadata as any || {};
         return {
           id: t.id,
+          sequentialId: t.sequentialId || null,
           type: t.type,
           amount: fromCentesimi(t.amount as bigint).toFixed(2),
           balanceBefore: fromCentesimi(t.balanceBefore as bigint).toFixed(2),

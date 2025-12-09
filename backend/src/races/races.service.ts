@@ -6,6 +6,7 @@ import { getServerDay } from '../common/utils/server-time.util';
 import { updateUserBalance } from '../common/utils/balance.util';
 import { fromCentesimi } from '../common/utils/balance.util';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
+import { getNextSequentialId } from '../common/utils/sequential-id.util';
 
 interface PrizeDistributionConfig {
   topPercentageWinners: number;
@@ -242,9 +243,11 @@ export class RacesService {
         },
       });
 
+      const sequentialId = await getNextSequentialId(tx);
       await tx.transaction.create({
         data: {
           userId,
+          sequentialId,
           type: TransactionType.RACE_ENTRY,
           amount: -entryFee, // Negative for debit
           balanceBefore,
@@ -533,9 +536,11 @@ export class RacesService {
               where: { userId: participant.userId },
               data: { balance: after },
             });
+            const sequentialId = await getNextSequentialId(tx);
             await tx.transaction.create({
               data: {
                 userId: participant.userId,
+                sequentialId,
                 type: TransactionType.RACE_PRIZE,
                 amount: prize,
                 balanceBefore: before,
