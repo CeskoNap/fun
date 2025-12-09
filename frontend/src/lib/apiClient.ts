@@ -1,7 +1,7 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const USER_ID = "demo-user-1"; // MVP mock
 
-export type HttpMethod = "GET" | "POST";
+export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 
 export class ApiError extends Error {
   status: number;
@@ -49,6 +49,8 @@ async function request<T>(
 export const apiClient = {
   get: <T>(path: string) => request<T>("GET", path),
   post: <T>(path: string, body?: any) => request<T>("POST", path, body),
+  patch: <T>(path: string, body?: any) => request<T>("PATCH", path, body),
+  delete: <T>(path: string) => request<T>("DELETE", path),
 };
 
 

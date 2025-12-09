@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo, useLayoutEffect } from "react";
 import { apiClient, ApiError } from "../../src/lib/apiClient";
 import { useStore } from "../../src/store/useStore";
 import { useToast } from "../../src/components/ToastProvider";
@@ -35,6 +35,59 @@ interface LeaderboardResponse {
   status: string;
   participants: LeaderboardItem[];
 }
+
+// Memoized component to prevent unnecessary re-renders
+// Component that uses refs to update values directly in DOM without re-rendering
+const LeaderboardRow = ({ participant, index, raceId, refsMap }: { 
+  participant: LeaderboardItem; 
+  index: number;
+  raceId: string;
+  refsMap: React.MutableRefObject<Map<string, { volumeRef: HTMLDivElement | null; prizeRef: HTMLDivElement | null }>>;
+}) => {
+  const volumeRef = useRef<HTMLDivElement>(null);
+  const prizeRef = useRef<HTMLDivElement>(null);
+  const key = `${raceId}-${participant.username}-${participant.rank}`;
+  
+  useLayoutEffect(() => {
+    // Register refs in the map so we can update them directly
+    // Use layout effect to ensure refs are set before paint
+    if (volumeRef.current && prizeRef.current) {
+      refsMap.current.set(key, { volumeRef: volumeRef.current, prizeRef: prizeRef.current });
+    }
+    
+    return () => {
+      refsMap.current.delete(key);
+    };
+  }, [key, refsMap]);
+  
+  const prizeValue = participant.prize && participant.prize !== "0" && participant.prize !== "null" && parseFloat(participant.prize) > 0 
+    ? (parseFloat(participant.prize) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : "-";
+  const volumeValue = Math.round(parseFloat(participant.volume || "0") / 100).toLocaleString();
+  
+  return (
+    <div
+      className={`flex justify-between py-3 px-4 ${
+        index % 2 === 0 ? "bg-[#142633]" : "bg-[#0F212E]"
+      }`}
+    >
+      <div>
+        <div className="font-semibold">
+          #{participant.rank} {participant.username}
+        </div>
+        <div ref={volumeRef} className="text-xs text-zinc-500">
+          Volume: {volumeValue} FUN
+        </div>
+      </div>
+      <div className="text-right">
+        <div className="text-xs text-zinc-500">Prize</div>
+        <div ref={prizeRef} className="text-sm font-semibold text-accent">
+          {prizeValue !== "-" ? `${prizeValue} FUN` : "-"}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 function formatTimeDiff(targetIso: string, status?: string): string {
   try {
@@ -101,6 +154,8 @@ export default function RacesPage() {
   const [selectedRaceId, setSelectedRaceId] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
+  const leaderboardRefs = useRef<Map<string, { volumeRef: HTMLDivElement | null; prizeRef: HTMLDivElement | null }>>(new Map());
+  const leaderboardDataRef = useRef<LeaderboardResponse | null>(null); // Keep data in ref to avoid re-renders
 
   const [joiningRaceId, setJoiningRaceId] = useState<string | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -123,17 +178,79 @@ export default function RacesPage() {
     }
   }, [t]);
 
-  const loadLeaderboard = useCallback(async (raceId: string) => {
-    setSelectedRaceId(raceId);
-    setLeaderboard(null);
+  const loadLeaderboard = useCallback(async (raceId: string, skipReset: boolean = false) => {
+    // Only reset if it's a new race selection, not during auto-updates
+    if (!skipReset && selectedRaceId !== raceId) {
+      setSelectedRaceId(raceId);
+      setLeaderboard(null);
+      leaderboardRefs.current.clear();
+      leaderboardDataRef.current = null;
+    } else if (!skipReset) {
+      setSelectedRaceId(raceId);
+    }
+    
     setLeaderboardError(null);
     try {
       const data = await apiClient.get<LeaderboardResponse>(`/races/${raceId}/leaderboard`);
-      setLeaderboard(data);
+      if (data) {
+        const prev = leaderboardDataRef.current;
+        
+        // If we have previous data and it's the same race, update DOM directly without touching state
+        if (prev && prev.raceId === data.raceId && skipReset) {
+          // Update DOM directly for changed values
+          data.participants.forEach((newP, index) => {
+            const oldP = prev.participants[index];
+            if (oldP) {
+              const key = `${data.raceId}-${newP.username}-${newP.rank}`;
+              const refs = leaderboardRefs.current.get(key);
+              
+              if (refs) {
+                // Update volume if changed
+                if (oldP.volume !== newP.volume && refs.volumeRef) {
+                  const volumeValue = Math.round(parseFloat(newP.volume || "0") / 100).toLocaleString();
+                  refs.volumeRef.textContent = `Volume: ${volumeValue} FUN`;
+                }
+                
+                // Update prize if changed
+                if (oldP.prize !== newP.prize && refs.prizeRef) {
+                  const prizeValue = newP.prize && newP.prize !== "0" && newP.prize !== "null" && parseFloat(newP.prize) > 0 
+                    ? `${(parseFloat(newP.prize) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FUN`
+                    : "-";
+                  refs.prizeRef.textContent = prizeValue;
+                }
+              }
+            }
+          });
+          
+          // Check if structure changed (new participants, removed participants, or rank changes)
+          const structureChanged = prev.participants.length !== data.participants.length ||
+            prev.participants.some((oldP, index) => {
+              const newP = data.participants[index];
+              return !newP || oldP.username !== newP.username || oldP.rank !== newP.rank;
+            });
+          
+          // Only update state if structure changed, otherwise just update ref
+          if (structureChanged || prev.status !== data.status) {
+            leaderboardDataRef.current = data;
+            setLeaderboard(data);
+          } else {
+            // Structure unchanged, just update ref without touching state
+            leaderboardDataRef.current = data;
+            // Don't call setLeaderboard to avoid re-render
+          }
+        } else {
+          // New race or first load, update both state and ref
+          leaderboardDataRef.current = data;
+          setLeaderboard(data);
+        }
+      }
     } catch (e: any) {
-      setLeaderboardError(t("errors.generic"));
+      // Don't clear leaderboard on error if we're doing an auto-update
+      if (!skipReset) {
+        setLeaderboardError(t("errors.generic"));
+      }
     }
-  }, [t]);
+  }, [t, selectedRaceId]);
 
   useEffect(() => {
     loadRaces();
@@ -142,7 +259,7 @@ export default function RacesPage() {
     pollingIntervalRef.current = setInterval(() => {
       loadRaces();
       if (selectedRaceId) {
-        loadLeaderboard(selectedRaceId);
+        loadLeaderboard(selectedRaceId, true); // Skip reset to avoid visual jump
       }
     }, 5000);
 
@@ -151,18 +268,30 @@ export default function RacesPage() {
       console.log("Bet resolved, updating races...");
       loadRaces();
       if (selectedRaceId) {
-        loadLeaderboard(selectedRaceId);
+        loadLeaderboard(selectedRaceId, true); // Skip reset to avoid visual jump
       }
     };
 
     // Listen to custom event that will be emitted when bet is resolved
     window.addEventListener('race:update', handleBetResolved);
 
+    // Listen to race:settled WebSocket event
+    const handleRaceSettled = (event: CustomEvent) => {
+      console.log("Race settled, updating leaderboard...", event.detail);
+      loadRaces();
+      if (selectedRaceId) {
+        loadLeaderboard(selectedRaceId, true); // Skip reset to avoid visual jump
+      }
+    };
+
+    window.addEventListener('race:settled', handleRaceSettled as EventListener);
+
     return () => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
       }
       window.removeEventListener('race:update', handleBetResolved);
+      window.removeEventListener('race:settled', handleRaceSettled as EventListener);
     };
   }, [loadRaces, loadLeaderboard, selectedRaceId]);
 
@@ -328,27 +457,13 @@ export default function RacesPage() {
               <div className="text-zinc-400">No participants yet.</div>
             )}
             {leaderboard.participants.map((p, index) => (
-              <div
-                key={`${leaderboard.raceId}-${p.rank}`}
-                className={`flex justify-between py-3 px-4 ${
-                  index % 2 === 0 ? "bg-[#142633]" : "bg-[#0F212E]"
-                }`}
-              >
-                <div>
-                  <div className="font-semibold">
-                    #{p.rank} {p.username}
-                  </div>
-                  <div className="text-xs text-zinc-500">
-                    Volume: {Math.round(parseFloat(p.volume || "0") / 100).toLocaleString()} FUN
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-zinc-500">Prize</div>
-                  <div className="text-sm font-semibold text-accent">
-                    {p.prize ? `${(parseFloat(p.prize) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FUN` : "-"}
-                  </div>
-                </div>
-              </div>
+              <LeaderboardRow
+                key={`${leaderboard.raceId}-${p.username}-${p.rank}`}
+                participant={p}
+                index={index}
+                raceId={leaderboard.raceId}
+                refsMap={leaderboardRefs}
+              />
             ))}
           </div>
         )}

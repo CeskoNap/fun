@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useStore } from "../store/useStore";
 import { useI18n } from "../i18n/useI18n";
 import { AuthModal } from "./AuthModal";
-import { UserIcon, ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
+import { UserIcon, BellIcon, ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
 
 export function Header() {
   const { balance, level } = useStore();
@@ -16,6 +16,7 @@ export function Header() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const accountMenuRef = useRef<HTMLDivElement>(null);
 
   // Check if user is logged in and fetch user info
@@ -44,6 +45,7 @@ export function Header() {
           }
         } else {
           setUsername(null);
+          setUnreadCount(0);
         }
       }
     };
@@ -52,6 +54,39 @@ export function Header() {
     window.addEventListener("storage", checkAuth);
     return () => window.removeEventListener("storage", checkAuth);
   }, []);
+
+  // Fetch unread notifications count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      if (!isLoggedIn) {
+        setUnreadCount(0);
+        return;
+      }
+
+      try {
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+        const token = localStorage.getItem("auth_token");
+        if (!token) return;
+
+        const res = await fetch(`${API_BASE}/notifications/unread-count`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUnreadCount(data.count || 0);
+        }
+      } catch (e) {
+        // Ignore errors
+      }
+    };
+
+    fetchUnreadCount();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [isLoggedIn]);
 
   const handleLogout = () => {
     if (typeof window !== "undefined") {
@@ -139,6 +174,17 @@ export function Header() {
                       >
                         <UserIcon className="w-5 h-5 shrink-0" />
                         <span className="text-sm font-medium">Profile</span>
+                      </Link>
+                      <Link
+                        href="/account?tab=notifications"
+                        onClick={() => setAccountMenuOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-md text-white hover:bg-background/50 hover:text-accent transition-all cursor-pointer"
+                      >
+                        <BellIcon className="w-5 h-5 shrink-0" />
+                        <span className="text-sm font-medium">Notifications</span>
+                        {unreadCount > 0 && (
+                          <span className="w-2 h-2 bg-accent rounded-full"></span>
+                        )}
                       </Link>
                       <button
                         onClick={handleLogout}

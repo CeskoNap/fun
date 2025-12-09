@@ -5,6 +5,7 @@ import { GameType, RaceStatus, TransactionType } from '@prisma/client';
 import { getServerDay } from '../common/utils/server-time.util';
 import { updateUserBalance } from '../common/utils/balance.util';
 import { fromCentesimi } from '../common/utils/balance.util';
+import { WebsocketGateway } from '../websocket/websocket.gateway';
 
 interface PrizeDistributionConfig {
   topPercentageWinners: number;
@@ -17,7 +18,10 @@ interface PrizeDistributionConfig {
 
 @Injectable()
 export class RacesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private websocketGateway: WebsocketGateway,
+  ) {}
 
   private async getDefaultRaceConfig() {
     let cfg = await this.prisma.raceConfig.findFirst({
@@ -151,21 +155,31 @@ export class RacesService {
           lte: now,
         },
       },
+      include: {
+        participants: {
+          orderBy: { volume: 'desc' },
+          include: { user: true },
+        },
+      },
     });
 
     if (racesToEnd.length > 0) {
-      await this.prisma.race.updateMany({
-        where: {
-          id: {
-            in: racesToEnd.map(r => r.id),
-          },
-        },
-        data: {
-          status: RaceStatus.ENDED,
-        },
-      });
+      // Automatically settle each race that ended
+      for (const race of racesToEnd) {
+        try {
+          await this.performSettle(race.id, 'system');
+          console.log(`Automatically settled race ${race.id}`);
+        } catch (error) {
+          console.error(`Error automatically settling race ${race.id}:`, error);
+          // Still mark as ENDED even if settle fails
+          await this.prisma.race.update({
+            where: { id: race.id },
+            data: { status: RaceStatus.ENDED },
+          });
+        }
+      }
       
-      console.log(`Ended ${racesToEnd.length} race(s) automatically`);
+      console.log(`Ended and settled ${racesToEnd.length} race(s) automatically`);
     }
   }
 
@@ -281,12 +295,68 @@ export class RacesService {
       throw new NotFoundException('Race not found');
     }
 
-    const participants = race.participants.map((p, index) => ({
-      rank: index + 1,
-      username: p.user.username,
-      volume: p.volume.toString(),
-      prize: p.prize ? p.prize.toString() : null,
-    }));
+    const prizePool = race.prizePool as bigint;
+    const totalParticipants = race.participants.length;
+
+    // Calculate potential prizes if race is not settled yet
+    const calculatePotentialPrize = (rank: number): bigint | null => {
+      if (race.status === RaceStatus.ENDED) {
+        // Race is settled, use actual prize from database
+        return null; // Will use p.prize from database
+      }
+
+      if (totalParticipants === 0 || prizePool <= 0n) {
+        return null;
+      }
+
+      // Fixed prize distribution (same as in performSettle):
+      // - 25% to 1st place
+      // - 15% to 2nd place
+      // - 10% to 3rd place
+      // - 20% divided among 4th-10th place (7 positions)
+      // - 30% divided among 11th-50th place (40 positions)
+
+      if (rank === 1 && totalParticipants >= 1) {
+        return (prizePool * 25n) / 100n;
+      }
+      if (rank === 2 && totalParticipants >= 2) {
+        return (prizePool * 15n) / 100n;
+      }
+      if (rank === 3 && totalParticipants >= 3) {
+        return (prizePool * 10n) / 100n;
+      }
+      if (rank >= 4 && rank <= 10 && totalParticipants >= rank) {
+        const positions4to10 = Math.min(7, Math.max(0, totalParticipants - 3));
+        if (positions4to10 > 0) {
+          const tierPool4to10 = (prizePool * 20n) / 100n;
+          return tierPool4to10 / BigInt(positions4to10);
+        }
+      }
+      if (rank >= 11 && rank <= 50 && totalParticipants >= rank) {
+        const positions11to50 = Math.min(40, Math.max(0, totalParticipants - 10));
+        if (positions11to50 > 0) {
+          const tierPool11to50 = (prizePool * 30n) / 100n;
+          return tierPool11to50 / BigInt(positions11to50);
+        }
+      }
+
+      return null; // No prize for this rank
+    };
+
+    const participants = race.participants.map((p, index) => {
+      const rank = index + 1;
+      // Use actual prize if race is settled, otherwise calculate potential prize
+      const prize = race.status === RaceStatus.ENDED 
+        ? (p.prize ? p.prize.toString() : null)
+        : (calculatePotentialPrize(rank)?.toString() || null);
+
+      return {
+        rank,
+        username: p.user.username,
+        volume: p.volume.toString(),
+        prize,
+      };
+    });
 
     return {
       raceId: race.id,
@@ -342,6 +412,10 @@ export class RacesService {
   // ADMIN HELPERS (settlement)
   // ============================
 
+  /**
+   * Admin method to manually settle a race (can be called before race ends)
+   * This allows admins to end races early if needed
+   */
   async settleRace(raceId: string, adminId: string) {
     const race = await this.prisma.race.findUnique({
       where: { id: raceId },
@@ -355,7 +429,27 @@ export class RacesService {
 
     if (!race) throw new NotFoundException('Race not found');
     if (race.status !== RaceStatus.ACTIVE && race.status !== RaceStatus.UPCOMING) {
-      throw new BadRequestException('Race cannot be settled in current status');
+      throw new BadRequestException('Race cannot be settled in current status. Race must be ACTIVE or UPCOMING.');
+    }
+
+    return await this.performSettle(raceId, adminId);
+  }
+
+  private async performSettle(raceId: string, settledBy: string) {
+    const race = await this.prisma.race.findUnique({
+      where: { id: raceId },
+      include: {
+        participants: {
+          orderBy: { volume: 'desc' },
+          include: { user: true },
+        },
+      },
+    });
+
+    if (!race) throw new NotFoundException('Race not found');
+    if (race.status !== RaceStatus.ACTIVE && race.status !== RaceStatus.UPCOMING) {
+      // Race already ended or cannot be settled
+      throw new BadRequestException(`Race cannot be settled in current status: ${race.status}. Race must be ACTIVE or UPCOMING.`);
     }
 
     const participants = race.participants;
@@ -459,6 +553,45 @@ export class RacesService {
             prize: prize > 0n ? prize : null,
           },
         });
+
+        // Create notification for participant
+        if (prize > 0n) {
+          // Winner notification
+          const prizeAmount = fromCentesimi(prize);
+          const rankSuffix = this.getRankSuffix(i + 1);
+          await tx.notification.create({
+            data: {
+              userId: participant.userId,
+              title: 'Race Prize Won!',
+              message: `${i + 1}${rankSuffix} place - ${prizeAmount.toFixed(2)} FUN received. Congratulations!`,
+              type: 'race_prize',
+              read: false,
+              metadata: {
+                raceId: race.id,
+                raceName: race.name,
+                rank: i + 1,
+                prize: prizeAmount,
+              },
+            },
+          });
+        } else {
+          // No prize notification
+          const rankSuffix = this.getRankSuffix(i + 1);
+          await tx.notification.create({
+            data: {
+              userId: participant.userId,
+              title: 'Race Finished',
+              message: `${i + 1}${rankSuffix} place - No prize won. Try again in the next race!`,
+              type: 'race_no_prize',
+              read: false,
+              metadata: {
+                raceId: race.id,
+                raceName: race.name,
+                rank: i + 1,
+              },
+            },
+          });
+        }
       }
 
       await tx.race.update({
@@ -466,21 +599,36 @@ export class RacesService {
         data: { status: RaceStatus.ENDED },
       });
 
-      // Log admin action
-      await tx.adminActionLog.create({
-        data: {
-          adminId,
-          action: 'settle_race',
-          details: {
-            raceId: race.id,
-            totalParticipants,
-            prizePool: prizePool.toString(),
+      // Log action (admin or system)
+      if (settledBy !== 'system') {
+        await tx.adminActionLog.create({
+          data: {
+            adminId: settledBy,
+            action: 'settle_race',
+            details: {
+              raceId: race.id,
+              totalParticipants,
+              prizePool: prizePool.toString(),
+            },
           },
-        },
-      });
+        });
+      }
+    });
+
+    // Emit WebSocket event to all users to update leaderboard
+    this.websocketGateway.emitToAll('race:settled', {
+      raceId: race.id,
+      status: RaceStatus.ENDED,
     });
 
     return { settled: true };
+  }
+
+  private getRankSuffix(rank: number): string {
+    if (rank === 1) return 'st';
+    if (rank === 2) return 'nd';
+    if (rank === 3) return 'rd';
+    return 'th';
   }
 
   async getHomepageActiveRace() {
@@ -519,27 +667,56 @@ export class RacesService {
       return null;
     }
 
-    // Calculate potential prizes based on prize distribution
-    const cfg = await this.getDefaultRaceConfig();
-    const dist = cfg.prizeDistribution as unknown as PrizeDistributionConfig;
     // Ensure prizePool is treated as BigInt (Prisma returns it as BigInt)
     const prizePool = typeof race.prizePool === 'bigint' 
       ? race.prizePool 
       : BigInt(race.prizePool);
     
-    const topPlayers = race.participants.map((p, index) => {
-      const rank = index + 1;
-      let potentialPrize = 0;
-      
-      // Calculate potential prize based on current rank and distribution
-      for (const tier of dist.tiers) {
-        if (rank >= tier.rankStart && rank <= tier.rankEnd) {
-          const tierPool = (prizePool * BigInt(tier.percentage)) / 100n;
-          const countInTier = tier.rankEnd - tier.rankStart + 1;
-          potentialPrize = fromCentesimi(tierPool / BigInt(countInTier));
-          break;
+    const totalParticipants = race.participants.length;
+    
+    // Calculate potential prizes using the same distribution as performSettle
+    // Fixed prize distribution:
+    // - 25% to 1st place
+    // - 15% to 2nd place
+    // - 10% to 3rd place
+    // - 20% divided among 4th-10th place (7 positions)
+    // - 30% divided among 11th-50th place (40 positions)
+    
+    const calculatePotentialPrize = (rank: number): number => {
+      if (totalParticipants === 0 || prizePool <= 0n) {
+        return 0;
+      }
+
+      if (rank === 1 && totalParticipants >= 1) {
+        return fromCentesimi((prizePool * 25n) / 100n);
+      }
+      if (rank === 2 && totalParticipants >= 2) {
+        return fromCentesimi((prizePool * 15n) / 100n);
+      }
+      if (rank === 3 && totalParticipants >= 3) {
+        return fromCentesimi((prizePool * 10n) / 100n);
+      }
+      if (rank >= 4 && rank <= 10 && totalParticipants >= rank) {
+        const positions4to10 = Math.min(7, Math.max(0, totalParticipants - 3));
+        if (positions4to10 > 0) {
+          const tierPool4to10 = (prizePool * 20n) / 100n;
+          return fromCentesimi(tierPool4to10 / BigInt(positions4to10));
         }
       }
+      if (rank >= 11 && rank <= 50 && totalParticipants >= rank) {
+        const positions11to50 = Math.min(40, Math.max(0, totalParticipants - 10));
+        if (positions11to50 > 0) {
+          const tierPool11to50 = (prizePool * 30n) / 100n;
+          return fromCentesimi(tierPool11to50 / BigInt(positions11to50));
+        }
+      }
+
+      return 0;
+    };
+    
+    const topPlayers = race.participants.map((p, index) => {
+      const rank = index + 1;
+      const potentialPrize = calculatePotentialPrize(rank);
 
       return {
         rank,

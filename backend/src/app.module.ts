@@ -15,6 +15,7 @@ import { MissionsModule } from './missions/missions.module';
 import { AchievementsModule } from './achievements/achievements.module';
 import { AuthModule } from './auth/auth.module';
 import { GamesModule } from './games/games.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { GamesModule } from './games/games.module';
     AchievementsModule,
     AuthModule,
     GamesModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

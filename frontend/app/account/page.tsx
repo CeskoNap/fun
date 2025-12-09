@@ -2,15 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useStore } from "../../src/store/useStore";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   UserIcon,
+  BellIcon,
   CurrencyDollarIcon,
   ListBulletIcon,
   TrophyIcon,
   ChartBarIcon,
   TicketIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
+import { apiClient } from "../../src/lib/apiClient";
 
 interface UserData {
   id: string;
@@ -22,10 +25,11 @@ interface UserData {
   avatarUrl: string | null;
 }
 
-type TabType = "profile" | "balances" | "transactions" | "levels" | "stats" | "tickets";
+type TabType = "profile" | "notifications" | "balances" | "transactions" | "levels" | "stats" | "tickets";
 
 const tabs = [
   { id: "profile" as TabType, label: "Profile", icon: UserIcon },
+  { id: "notifications" as TabType, label: "Notifications", icon: BellIcon },
   { id: "balances" as TabType, label: "Fun Balances", icon: CurrencyDollarIcon },
   { id: "transactions" as TabType, label: "Fun Transactions", icon: ListBulletIcon },
   { id: "levels" as TabType, label: "Fun Levels", icon: TrophyIcon },
@@ -36,9 +40,20 @@ const tabs = [
 export default function AccountPage() {
   const { balance, level, xp, fetchLevelAndBalance } = useStore();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("profile");
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+
+  // Check URL parameter for tab
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && tabs.some(tab => tab.id === tabParam)) {
+      setActiveTab(tabParam as TabType);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchLevelAndBalance();
@@ -77,6 +92,49 @@ export default function AccountPage() {
 
     fetchUserData();
   }, [fetchLevelAndBalance, router]);
+
+  // Fetch notifications when notifications tab is active
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (activeTab !== "notifications") return;
+
+      setNotificationsLoading(true);
+      try {
+        const token = localStorage.getItem("auth_token");
+        if (!token) return;
+
+        const data = await apiClient.get<any[]>("/notifications");
+        setNotifications(data || []);
+      } catch (error) {
+        console.error("Failed to fetch notifications:", error);
+        setNotifications([]);
+      } finally {
+        setNotificationsLoading(false);
+      }
+    };
+
+    fetchNotifications();
+  }, [activeTab]);
+
+  const handleDeleteNotification = async (notificationId: string) => {
+    try {
+      await apiClient.delete(`/notifications/${notificationId}`);
+      setNotifications(notifications.filter(n => n.id !== notificationId));
+    } catch (error) {
+      console.error("Failed to delete notification:", error);
+    }
+  };
+
+  const handleMarkAsRead = async (notificationId: string) => {
+    try {
+      await apiClient.patch(`/notifications/${notificationId}/read`);
+      setNotifications(notifications.map(n => 
+        n.id === notificationId ? { ...n, read: true } : n
+      ));
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+    }
+  };
 
   if (loading) {
     return (
@@ -140,6 +198,88 @@ export default function AccountPage() {
             </div>
           </div>
         );
+      case "notifications":
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">Notifications</h2>
+              {notifications.filter(n => !n.read).length > 0 && (
+                <button
+                  onClick={async () => {
+                    try {
+                      await apiClient.patch("/notifications/mark-all-read");
+                      setNotifications(notifications.map(n => ({ ...n, read: true })));
+                    } catch (error) {
+                      console.error("Failed to mark all as read:", error);
+                    }
+                  }}
+                  className="text-sm text-accent hover:text-accent/80 transition-colors"
+                >
+                  Mark all as read
+                </button>
+              )}
+            </div>
+            
+            {notificationsLoading ? (
+              <div className="text-center py-8 text-zinc-400">Loading notifications...</div>
+            ) : notifications.length === 0 ? (
+              <div className="text-center py-8 text-zinc-400">No notifications yet.</div>
+            ) : (
+              <div className="space-y-2">
+                {notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    onClick={() => {
+                      if (!notification.read) {
+                        handleMarkAsRead(notification.id);
+                      }
+                    }}
+                    className={`p-4 rounded-md border ${
+                      notification.read
+                        ? "bg-background/30 border-card/50"
+                        : "bg-background/50 border-card/70 cursor-pointer hover:bg-background/60 transition-colors"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className={`text-sm font-semibold ${
+                            notification.read ? "text-zinc-400" : "text-white"
+                          }`}>
+                            {notification.title}
+                          </h3>
+                          {!notification.read && (
+                            <span className="w-2 h-2 bg-accent rounded-full"></span>
+                          )}
+                        </div>
+                        <p className={`text-sm ${
+                          notification.read ? "text-zinc-500" : "text-zinc-300"
+                        }`}>
+                          {notification.message}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <p className="text-xs text-zinc-500 whitespace-nowrap">
+                          {new Date(notification.createdAt).toLocaleString()}
+                        </p>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteNotification(notification.id);
+                          }}
+                          className="p-1 text-zinc-500 hover:text-red-400 transition-colors"
+                          aria-label="Delete notification"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
       case "balances":
         return (
           <div className="space-y-6">
@@ -190,11 +330,14 @@ export default function AccountPage() {
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
+            const unreadCount = tab.id === "notifications" 
+              ? notifications.filter(n => !n.read).length 
+              : 0;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-all ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-all relative ${
                   isActive
                     ? "bg-background/50 text-white"
                     : "text-white hover:bg-background/30"
@@ -202,6 +345,11 @@ export default function AccountPage() {
               >
                 <Icon className="w-5 h-5 shrink-0" />
                 <span className="text-sm font-medium">{tab.label}</span>
+                {unreadCount > 0 && (
+                  <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
               </button>
             );
           })}

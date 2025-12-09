@@ -83,6 +83,7 @@ model User {
   adminActions     AdminActionLog[]
   loginLogs        LoginLog[]
   xpLogs           XpLog[]
+  notifications    Notification[]
 }
 
 model Session {
@@ -588,6 +589,27 @@ model RaceParticipant {
   @@index([raceId])
   @@index([userId])
   @@index([rank])
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("info") // 'info', 'race_prize', 'race_no_prize', etc.
+  read      Boolean  @default(false)
+  metadata  Json?    // Additional data (raceId, prize amount, rank, etc.)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
 }
 
 // ============================================

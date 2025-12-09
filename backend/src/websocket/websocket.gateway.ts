@@ -99,5 +99,12 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
       timestamp: new Date().toISOString(),
     });
   }
+
+  /**
+   * Emit event to all connected clients
+   */
+  emitToAll(event: string, data: any) {
+    this.server.emit(event, data);
+  }
 }
 

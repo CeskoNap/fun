@@ -93,6 +93,13 @@ export function useUserSocket() {
       }
     );
 
+    socket.on("race:settled", (payload: { raceId: string; status: string }) => {
+      // Emit custom event for race page to update leaderboard
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent('race:settled', { detail: payload }));
+      }
+    });
+
     return () => {
       socket?.disconnect();
       socket = null;

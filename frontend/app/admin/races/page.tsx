@@ -351,15 +351,21 @@ export default function AdminRacesPage() {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        throw new Error("Failed to settle race");
+        const errorMessage = data.message || data.error || `Failed to settle race (${res.status})`;
+        throw new Error(errorMessage);
       }
 
+      alert("Race settled successfully! Prizes have been distributed and notifications sent.");
       loadRaces();
     } catch (e: any) {
+      console.error("Error settling race:", e);
       alert(e.message || "Failed to settle race");
     }
   };
