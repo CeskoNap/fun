@@ -1112,6 +1112,70 @@ export default function AdminRacesPage() {
           </div>
         </div>
       )}
+
+      {/* Edit Prize Pool Modal */}
+      {showEditPrizePoolModal && selectedRaceId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-card rounded-md w-full max-w-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-white">Edit Prize Pool</h3>
+              <button
+                onClick={() => {
+                  setShowEditPrizePoolModal(false);
+                  setEditPrizePool("");
+                }}
+                className="text-zinc-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-zinc-300 mb-1">Prize Pool (FUN)</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={editPrizePool}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "" || (!isNaN(parseFloat(value)) && parseFloat(value) >= 0)) {
+                        setEditPrizePool(value);
+                      }
+                    }}
+                    className="flex-1 bg-zinc-800 rounded-md px-3 py-2 text-white"
+                    placeholder="Prize pool amount (FUN)"
+                    required
+                  />
+                  <span className="text-sm text-white">FUN</span>
+                </div>
+                <p className="text-xs text-zinc-400 mt-1">
+                  Distribution: 25% (1st), 15% (2nd), 10% (3rd), 20% (4th-10th), 30% (11th-50th)
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleUpdatePrizePool}
+                  disabled={!editPrizePool || parseFloat(editPrizePool) < 0}
+                  className="flex-1 px-4 py-2 bg-accent text-black rounded-md hover:bg-accent/90 disabled:opacity-50"
+                >
+                  Update Prize Pool
+                </button>
+                <button
+                  onClick={() => {
+                    setShowEditPrizePoolModal(false);
+                    setEditPrizePool("");
+                  }}
+                  className="flex-1 px-4 py-2 bg-zinc-800 text-white rounded-md hover:bg-zinc-700"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

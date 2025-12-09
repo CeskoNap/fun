@@ -20,6 +20,7 @@ interface RaceSummary {
   prizePool: string;
   joined: boolean;
   volume: string;
+  totalVolume: string;
 }
 
 interface LeaderboardItem {
@@ -261,7 +262,7 @@ export default function RacesPage() {
                   </div>
                   <div className="text-xs text-zinc-500 mt-1 space-y-0.5">
                     <div>
-                      Entry fee: {Math.round(parseFloat(race.entryFee) / 100).toLocaleString()} FUN • Prize pool: {Math.round(parseFloat(race.prizePool) / 100).toLocaleString()} FUN
+                    Entry fee: {Math.round(parseFloat(race.entryFee) / 100).toLocaleString()} FUN • Prize pool: {Math.round(parseFloat(race.prizePool) / 100).toLocaleString()} FUN
                     </div>
                     <div>
                       Status: {race.status} •{" "}
@@ -269,10 +270,13 @@ export default function RacesPage() {
                         ? `Ends in ${formatTimeDiff(race.endsAt, race.status)}`
                         : `Starts in ${formatTimeDiff(race.startsAt, race.status)}`}
                     </div>
+                  <div>
+                    Total volume: {Math.round(parseFloat(race.totalVolume || "0") / 100).toLocaleString()} FUN
+                  </div>
                   </div>
                   {race.joined && (
                     <div className="text-xs text-emerald-400">
-                      Joined • Volume: {Math.round(parseFloat(race.volume || "0") / 100).toLocaleString()} FUN
+                    Joined • Your volume: {Math.round(parseFloat(race.volume || "0") / 100).toLocaleString()} FUN
                       {race.status === "ACTIVE" && " (updating...)"}
                     </div>
                   )}
@@ -319,14 +323,16 @@ export default function RacesPage() {
           </div>
         )}
         {leaderboard && (
-          <div className="space-y-1 text-sm text-zinc-300">
+          <div className="text-sm text-zinc-300">
             {leaderboard.participants.length === 0 && (
               <div className="text-zinc-400">No participants yet.</div>
             )}
-            {leaderboard.participants.map((p) => (
+            {leaderboard.participants.map((p, index) => (
               <div
                 key={`${leaderboard.raceId}-${p.rank}`}
-                className="flex justify-between py-1"
+                className={`flex justify-between py-3 px-4 ${
+                  index % 2 === 0 ? "bg-[#142633]" : "bg-[#0F212E]"
+                }`}
               >
                 <div>
                   <div className="font-semibold">
@@ -339,7 +345,7 @@ export default function RacesPage() {
                 <div className="text-right">
                   <div className="text-xs text-zinc-500">Prize</div>
                   <div className="text-sm font-semibold text-accent">
-                    {p.prize ? `${Math.round(parseFloat(p.prize) / 100).toLocaleString()} FUN` : "-"}
+                    {p.prize ? `${(parseFloat(p.prize) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} FUN` : "-"}
                   </div>
                 </div>
               </div>

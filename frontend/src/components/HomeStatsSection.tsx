@@ -14,7 +14,9 @@ interface RaceData {
   id: string;
   name: string;
   prizePool: number;
+  startsAt: string;
   endsAt: string;
+  status: string;
   topPlayers: Array<{
     rank: number;
     username: string;
@@ -220,20 +222,24 @@ export function HomeStatsSection() {
     });
   };
 
-  const formatTimeRemaining = (endsAt: string) => {
-    const end = new Date(endsAt);
+  const formatTimeRemaining = (targetDate: string) => {
+    const target = new Date(targetDate);
     const now = new Date();
-    const diff = end.getTime() - now.getTime();
+    const diff = target.getTime() - now.getTime();
 
-    if (diff <= 0) return "Ended";
+    if (diff <= 0) return "Terminata";
 
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
     if (days > 0) {
       return `${days}d ${hours}h`;
     }
-    return `${hours}h`;
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
   };
 
   const maskUsername = (username: string) => {
@@ -247,11 +253,30 @@ export function HomeStatsSection() {
     return "rgb(205, 127, 50)"; // Bronze
   };
 
+  const formatNumber = (amount: number, decimals: number) =>
+    amount.toLocaleString("en-US", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+
+  const formatPrizePool = (amount: number): string => {
+    // If has cents (non-zero decimal part), show 2 decimals, otherwise no decimals
+    const hasCents = amount % 1 !== 0;
+    return formatNumber(amount, hasCents ? 2 : 0);
+  };
+
+  const formatPrizes = (prizes: Array<{ prize: number }>): string => {
+    // Check if at least one prize has non-zero cents
+    const hasAnyCents = prizes.some(p => p.prize % 1 !== 0);
+    // If any has cents, all show 2 decimals, otherwise all show no decimals
+    return hasAnyCents ? '2' : '0';
+  };
+
   return (
     <div className="mb-0 flex flex-col lg:flex-row gap-4 items-stretch p-2 md:p-0">
       {/* Left Panel - RTP Live */}
-      <div className="w-full lg:flex-grow border border-card/50 rounded-md shadow-md overflow-hidden relative flex flex-col" style={{ backgroundColor: '#0F212E' }}>
-        <div className="md:p-2 pb-0 md:p-4 flex flex-col h-full relative z-10">
+      <div className="w-full lg:w-[70%] h-full min-h-[270px] max-h-[270px] border border-card/50 rounded-md shadow-md overflow-hidden relative flex flex-col" style={{ backgroundColor: '#0F212E' }}>
+        <div className="md:p-2 pb-0 md:p-4 flex flex-col h-full min-h-[270px] max-h-[270px] relative z-10">
           <div className="flex p-3 md:p-2 flex-col md:flex-row md:items-center justify-between gap-6 p-2">
             <div>
               <div className="flex flex-wrap">
@@ -347,102 +372,123 @@ export function HomeStatsSection() {
       </div>
 
       {/* Right Panel - Races */}
-      <div className="overflow-hidden rounded-md border border-card/50 shadow-lg h-full w-full lg:w-[360px] relative z-[1] flex flex-col" style={{ backgroundColor: '#0F212E' }}>
-          
-          <div className="p-3 relative md:z-10">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-hexagon h-8 w-8 text-card fill-card stroke-green-500">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                  </svg>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trophy h-3 w-3 text-green-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
-                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-                    <path d="M4 22h16"></path>
-                    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
-                    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
-                    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
-                  </svg>
+      <div className="overflow-hidden rounded-md border border-card/50 shadow-lg h-full min-h-[270px] max-h-[270px] w-full lg:w-[30%] relative z-[1] flex flex-col" style={{ backgroundColor: '#0F212E' }}>
+          {raceData ? (
+            <div className="p-4 relative md:z-10 h-full min-h-[270px] max-h-[270px] flex flex-col">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-hexagon h-8 w-8 text-card fill-card stroke-green-500">
+                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trophy h-3 w-3 text-green-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                      <path d="M4 22h16"></path>
+                      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
+                      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
+                      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Races</h3>
+                  </div>
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">Races</h3>
+                  <div className="text-xs text-zinc-400 text-right">Prize Pool</div>
+                  <div className="text-green-500 text-lg text-right font-semibold">
+                    {formatPrizePool(raceData.prizePool)} FUN
+                  </div>
                 </div>
               </div>
-              {raceData && (
-                <div>
-                  <div className="text-xs text-zinc-400 text-right">Montepremi</div>
-                  <div className="text-green-500 text-lg text-right font-bold">
-                    {raceData.prizePool.toFixed(2)} FUN
-                  </div>
-                </div>
-              )}
-            </div>
 
-            {raceData ? (
               <>
-                <div className="bg-background/30 border border-card/50 p-2 rounded-md mb-3 hidden md:block">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-medium text-white text-sm pl-1">Migliori giocatori</h3>
-                    <span className="text-xs text-zinc-400 pr-1">Premio</span>
-                  </div>
-                  <div className="space-y-[5px]">
-                    {raceData.topPlayers.map((player) => (
-                      <div key={player.rank} className="flex items-center bg-card/30 p-1 rounded-md">
-                        <div className="w-7 flex items-center justify-center">
-                          <div className="relative flex items-center justify-center w-6 h-6">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-hexagon absolute w-6 h-6 text-card fill-card stroke-green-500/50">
-                              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                            </svg>
-                            <span className="text-xs font-bold relative z-1 font-[system-ui]" style={{ color: getRankColor(player.rank) }}>
-                              {player.rank}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="ml-1 flex-1">
-                          <p className="font-medium text-white text-sm">{maskUsername(player.username)}</p>
-                        </div>
-                        <div className="text-green-500 font-bold text-sm">
-                          {player.prize.toFixed(2)} FUN
-                        </div>
+                {raceData.status === 'ACTIVE' && (
+                  <div className="border border-card/50 p-2 rounded-md mb-3 hidden md:block min-h-[120px]">
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="font-medium text-white text-sm pl-1">Top Players</h3>
+                      <span className="text-xs text-zinc-400 pr-1">Prize</span>
+                    </div>
+                    {raceData.topPlayers.length > 0 ? (
+                      <div>
+                        {(() => {
+                          const decimals = formatPrizes(raceData.topPlayers);
+                          return raceData.topPlayers.map((player, index) => (
+                            <div 
+                              key={player.rank} 
+                              className={`flex items-center p-1 px-2 ${
+                                index % 2 === 0 ? "bg-[#142633]" : "bg-[#0F212E]"
+                              }`}
+                            >
+                              <div className="w-7 flex items-center justify-center">
+                                <div className="relative flex items-center justify-center w-6 h-6">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-hexagon absolute w-6 h-6 text-card fill-card stroke-green-500/50">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                  </svg>
+                                  <span className="text-xs font-bold relative z-1 font-[system-ui]" style={{ color: getRankColor(player.rank) }}>
+                                    {player.rank}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="ml-1 flex-1">
+                                <p className="font-medium text-white text-sm">{maskUsername(player.username)}</p>
+                              </div>
+                              <div className="text-green-500 font-semibold text-sm">
+                                {formatNumber(player.prize, parseInt(decimals))} FUN
+                              </div>
+                            </div>
+                          ));
+                        })()}
                       </div>
-                    ))}
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-zinc-400">No players yet</p>
+                        <p className="text-xs text-zinc-500 mt-1">Top players will appear here as they play</p>
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
+                {raceData.status === 'UPCOMING' && (
+                  <div className="border border-card/50 p-2 rounded-md mb-3 hidden md:block min-h-[120px] flex flex-col justify-center">
+                    <div className="text-center py-4">
+                      <p className="text-sm text-zinc-400">The race will start soon!</p>
+                      <p className="text-xs text-zinc-500 mt-1">Top players will appear here after the start</p>
+                    </div>
+                  </div>
+                )}
 
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mt-auto">
                   <div className="flex items-center gap-1 px-0 md:px-2 py-1 rounded-md">
-                    <span className="text-zinc-400 text-xs mr-1 inline">Termina tra:</span>
+                    <span className="text-zinc-400 text-xs mr-1 inline">
+                      {raceData.status === 'UPCOMING' ? 'Starts in:' : 'Ends in:'}
+                    </span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-clock h-3 w-3 sm:h-3.5 sm:w-3.5 text-zinc-400">
                       <circle cx="12" cy="12" r="10"></circle>
                       <polyline points="12 6 12 12 16 14"></polyline>
                     </svg>
                     <div className="text-xs sm:text-sm text-white font-medium whitespace-nowrap">
-                      {formatTimeRemaining(raceData.endsAt)}
+                      {raceData.status === 'UPCOMING' 
+                        ? formatTimeRemaining(raceData.startsAt)
+                        : formatTimeRemaining(raceData.endsAt)}
                     </div>
                   </div>
                   <div>
                     <Link href="/races">
-                      <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 px-4 py-2 !text-xs lg:!text-sm h-8 text-base text-white font-semibold bg-gradient-to-b from-[#dc146e] from-40% to-[#960d81] to-60% bg-[length:200%_100px] bg-center hover:bg-top transition-[background] duration-150 ease-in">
-                        Vedi race
+                      <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 px-4 py-2 !text-xs lg:!text-sm h-8 text-base text-black font-semibold bg-accent hover:bg-accent/90 transition-colors">
+                        View Race
                       </button>
                     </Link>
                   </div>
                 </div>
               </>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="text-4xl mb-3 opacity-50">🏁</div>
-                <div className="text-sm text-zinc-400 font-medium mb-2">Nessuna race attiva</div>
-                <div className="text-xs text-zinc-500">Controlla più tardi per nuove race!</div>
-                <Link href="/races" className="mt-4">
-                  <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 px-4 py-2 !text-xs lg:!text-sm h-8 text-base text-white font-semibold bg-gradient-to-b from-[#dc146e] from-40% to-[#960d81] to-60% bg-[length:200%_100px] bg-center hover:bg-top transition-[background] duration-150 ease-in">
-                    Vedi tutte le race
-                  </button>
-                </Link>
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="p-4 relative md:z-10 h-full min-h-[270px] max-h-[270px] flex flex-col items-center justify-center text-center">
+              <div className="text-4xl mb-3 opacity-50">🏁</div>
+              <div className="text-sm text-zinc-400 font-medium mb-1">No Active Race</div>
+              <div className="text-xs text-zinc-500">Check back later for new Races!</div>
+            </div>
+          )}
         </div>
     </div>
   );

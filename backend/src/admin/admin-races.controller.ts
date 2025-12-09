@@ -45,6 +45,7 @@ export class AdminRacesController {
       endsAt: string;
       raceConfigName?: string;
       entryFee?: number; // Entry fee in centesimi (optional, defaults to config or 100)
+      prizePool?: number; // Prize pool in centesimi (required)
     },
   ) {
     // Detailed date validation
@@ -272,9 +273,16 @@ export class AdminRacesController {
       throw new NotFoundException('Race not found');
     }
 
-    // Only allow date updates for UPCOMING races
-    if (race.status !== RaceStatus.UPCOMING) {
-      throw new BadRequestException('Can only update dates for UPCOMING races.');
+    const wantsPrizePoolUpdate = body.prizePool !== undefined && body.prizePool !== null;
+    const wantsStartUpdate = body.startsAt !== undefined;
+    const wantsEndUpdate = body.endsAt !== undefined;
+
+    // Only allow date updates for UPCOMING races.
+    // Allow prize pool updates for ACTIVE races as long as dates are not modified.
+    const isPrizeOnlyUpdate = wantsPrizePoolUpdate && !wantsStartUpdate && !wantsEndUpdate;
+    const isAllowedForActive = race.status === RaceStatus.ACTIVE && isPrizeOnlyUpdate;
+    if (race.status !== RaceStatus.UPCOMING && !isAllowedForActive) {
+      throw new BadRequestException('Can only update dates for UPCOMING races. Prize pool can be updated for ACTIVE races only if dates are unchanged.');
     }
 
     const updateData: any = {};

@@ -75,8 +75,26 @@ export class RacesService {
       },
     });
 
+    // Precompute total volume per race (all participants), includes any admin adjustments
+    const volumeSums = await this.prisma.raceParticipant.groupBy({
+      by: ['raceId'],
+      where: {
+        raceId: {
+          in: races.map((r) => r.id),
+        },
+      },
+      _sum: {
+        volume: true,
+      },
+    });
+    const volumeSumMap = new Map<string, bigint>();
+    for (const v of volumeSums) {
+      volumeSumMap.set(v.raceId, (v._sum.volume as bigint) ?? 0n);
+    }
+
     return races.map((race) => {
       const participant = race.participants[0];
+      const totalVolume = volumeSumMap.get(race.id) ?? 0n;
       return {
         id: race.id,
         name: race.name,
@@ -89,6 +107,7 @@ export class RacesService {
         prizePool: race.prizePool.toString(),
         joined: !!participant,
         volume: participant ? participant.volume.toString() : '0',
+        totalVolume: totalVolume.toString(),
       };
     });
   }
@@ -222,16 +241,7 @@ export class RacesService {
         },
       });
 
-      // Update prize pool
-      const prizePool = race.prizePool as bigint;
-      const updatedRace = await tx.race.update({
-        where: { id: race.id },
-        data: {
-          prizePool: prizePool + entryFee,
-        },
-      });
-
-      // Create participant
+      // Create participant (prize pool is set by admin and doesn't change)
       await tx.raceParticipant.create({
         data: {
           raceId: race.id,
@@ -243,7 +253,7 @@ export class RacesService {
 
       return {
         entryFee,
-        prizePool: updatedRace.prizePool as bigint,
+        prizePool: race.prizePool as bigint,
         balanceAfter: updatedBalance.balance as bigint,
       };
     });
@@ -474,10 +484,20 @@ export class RacesService {
   }
 
   async getHomepageActiveRace() {
-    // Get the most recent active race
+    const now = new Date();
+    
+    // First, check and activate races that should be active
+    await this.activateDueRaces(now);
+    
+    // Also check and end races that should be ended
+    await this.endDueRaces(now);
+    
+    // Get the most recent active race (or upcoming race if no active ones)
     const race = await this.prisma.race.findFirst({
       where: {
-        status: RaceStatus.ACTIVE,
+        status: {
+          in: [RaceStatus.ACTIVE, RaceStatus.UPCOMING],
+        },
       },
       orderBy: { startsAt: 'desc' },
       include: {
@@ -502,7 +522,10 @@ export class RacesService {
     // Calculate potential prizes based on prize distribution
     const cfg = await this.getDefaultRaceConfig();
     const dist = cfg.prizeDistribution as unknown as PrizeDistributionConfig;
-    const prizePool = race.prizePool as bigint;
+    // Ensure prizePool is treated as BigInt (Prisma returns it as BigInt)
+    const prizePool = typeof race.prizePool === 'bigint' 
+      ? race.prizePool 
+      : BigInt(race.prizePool);
     
     const topPlayers = race.participants.map((p, index) => {
       const rank = index + 1;
@@ -529,7 +552,9 @@ export class RacesService {
       id: race.id,
       name: race.name,
       prizePool: fromCentesimi(prizePool),
+      startsAt: race.startsAt,
       endsAt: race.endsAt,
+      status: race.status,
       topPlayers,
     };
   }
