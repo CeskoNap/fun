@@ -361,33 +361,33 @@ export default function AdminUserEditPage() {
         return (
           <div className="space-y-4 max-w-2xl">
                     <div>
-                      <label className="block text-sm font-medium text-zinc-300 mb-1">Username</label>
+                      <label className="block text-xs text-zinc-400 mb-1">Username</label>
                       <input
                         type="text"
                         value={editData.username}
                         onChange={(e) => setEditData({ ...editData, username: e.target.value })}
-                        className="w-full px-4 py-2 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
                         style={{ backgroundColor: "#E8F0FE" }}
                         placeholder="Username"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-zinc-300 mb-1">Email</label>
+                      <label className="block text-xs text-zinc-400 mb-1">Email</label>
                       <input
                         type="email"
                         value={editData.email}
                         onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-                        className="w-full px-4 py-2 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
                         style={{ backgroundColor: "#E8F0FE" }}
                         placeholder="Email (optional)"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-zinc-300 mb-1">Role</label>
+                      <label className="block text-xs text-zinc-400 mb-1">Role</label>
                       <select
                         value={editData.role}
                         onChange={(e) => setEditData({ ...editData, role: e.target.value })}
-                        className="w-full px-4 py-2 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
                         style={{ backgroundColor: "#E8F0FE" }}
                       >
                         <option value="USER">USER</option>
@@ -396,12 +396,12 @@ export default function AdminUserEditPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-zinc-300 mb-1">Level</label>
+                      <label className="block text-xs text-zinc-400 mb-1">Level</label>
                       <input
                         type="number"
                         value={editData.level}
                         onChange={(e) => setEditData({ ...editData, level: e.target.value })}
-                        className="w-full px-4 py-2 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
                         style={{ backgroundColor: "#E8F0FE" }}
                         placeholder="Level"
                         min="1"
@@ -410,7 +410,7 @@ export default function AdminUserEditPage() {
             <div className="flex gap-3">
               <button
                 onClick={handleEditUser}
-                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="px-6 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
               >
                 Save Changes
               </button>
@@ -423,7 +423,7 @@ export default function AdminUserEditPage() {
           <div className="space-y-4 max-w-2xl">
             {user.isBanned ? (
               <div>
-                <p className="text-zinc-300 mb-4">
+                <p className="text-sm text-zinc-300 mb-4">
                   User is currently banned{user.bannedUntil ? ` until ${new Date(user.bannedUntil).toLocaleString()}` : " permanently"}.
                   {user.banReason && (
                     <span className="block mt-2">Reason: {user.banReason}</span>
@@ -431,7 +431,7 @@ export default function AdminUserEditPage() {
                 </p>
                 <button
                   onClick={handleUnban}
-                  className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                  className="px-6 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
                 >
                   Unban User
                 </button>
@@ -439,18 +439,18 @@ export default function AdminUserEditPage() {
             ) : (
               <>
                         <div>
-                          <label className="block text-sm font-medium text-zinc-300 mb-1">Reason (optional)</label>
+                          <label className="block text-xs text-zinc-400 mb-1">Reason (optional)</label>
                           <input
                             type="text"
                             value={banReason}
                             onChange={(e) => setBanReason(e.target.value)}
-                            className="w-full px-4 py-2 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                            className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
                             style={{ backgroundColor: "#E8F0FE" }}
                             placeholder="Ban reason..."
                           />
                         </div>
                 <div>
-                  <label className="flex items-center gap-2 text-sm text-zinc-300 mb-1">
+                  <label className="flex items-center gap-2 text-xs text-zinc-400 mb-1">
                     <input
                       type="checkbox"
                       checked={banPermanent}
@@ -467,12 +467,12 @@ export default function AdminUserEditPage() {
                 </div>
                 {!banPermanent && (
                           <div>
-                            <label className="block text-sm font-medium text-zinc-300 mb-1">Ban until (optional, leave empty for permanent)</label>
+                            <label className="block text-xs text-zinc-400 mb-1">Ban until (optional, leave empty for permanent)</label>
                             <input
                               type="datetime-local"
                               value={banUntil}
                               onChange={(e) => setBanUntil(e.target.value)}
-                              className="w-full px-4 py-2 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                              className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
                               style={{ backgroundColor: "#E8F0FE" }}
                             />
                           </div>
@@ -480,7 +480,7 @@ export default function AdminUserEditPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={handleBan}
-                    className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                    className="px-6 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
                   >
                     {banPermanent ? "Ban Permanently" : "Ban User"}
                   </button>
@@ -495,8 +495,8 @@ export default function AdminUserEditPage() {
           <div className="space-y-6 max-w-4xl">
             {/* Current Balance */}
             <div className="bg-zinc-800 rounded-md p-4">
-              <div className="text-sm text-zinc-400 mb-1">Current Balance</div>
-              <div className="text-2xl font-bold text-accent">
+              <div className="text-xs text-zinc-400 mb-1">Current Balance</div>
+              <div className="text-sm font-semibold text-accent">
                 {parseFloat(user.balance).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN
               </div>
             </div>
@@ -507,12 +507,12 @@ export default function AdminUserEditPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-white">Give FUN</h3>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">Amount (FUN)</label>
+                  <label className="block text-xs text-zinc-400 mb-1">Amount (FUN)</label>
                   <input
                     type="number"
                     value={giveAmount}
                     onChange={(e) => setGiveAmount(e.target.value)}
-                    className="w-full px-4 py-2 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
                     style={{ backgroundColor: "#E8F0FE" }}
                     placeholder="0.00"
                     step="0.01"
@@ -520,18 +520,18 @@ export default function AdminUserEditPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">Reason (optional)</label>
+                  <label className="block text-xs text-zinc-400 mb-1">Reason (optional)</label>
                   <input
                     type="text"
                     value={giveReason}
                     onChange={(e) => setGiveReason(e.target.value)}
-                    className="w-full px-4 py-2 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
                     style={{ backgroundColor: "#E8F0FE" }}
                     placeholder="Reason for giving tokens..."
                   />
                 </div>
                 <div>
-                  <label className="flex items-center gap-2 text-sm text-zinc-300">
+                  <label className="flex items-center gap-2 text-xs text-zinc-400">
                     <input
                       type="checkbox"
                       checked={sendGiveNotification}
@@ -544,7 +544,7 @@ export default function AdminUserEditPage() {
                 <div>
                   <button
                     onClick={handleGiveTokens}
-                    className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    className="px-6 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
                   >
                     Give FUN
                   </button>
@@ -555,12 +555,12 @@ export default function AdminUserEditPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-white">Deduct FUN</h3>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">Amount (FUN)</label>
+                  <label className="block text-xs text-zinc-400 mb-1">Amount (FUN)</label>
                   <input
                     type="number"
                     value={deductAmount}
                     onChange={(e) => setDeductAmount(e.target.value)}
-                    className="w-full px-4 py-2 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
                     style={{ backgroundColor: "#E8F0FE" }}
                     placeholder="0.00"
                     step="0.01"
@@ -568,18 +568,18 @@ export default function AdminUserEditPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">Reason (optional)</label>
+                  <label className="block text-xs text-zinc-400 mb-1">Reason (optional)</label>
                   <input
                     type="text"
                     value={deductReason}
                     onChange={(e) => setDeductReason(e.target.value)}
-                    className="w-full px-4 py-2 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full px-4 py-1.5 rounded-md text-black focus:outline-none focus:ring-2 focus:ring-accent"
                     style={{ backgroundColor: "#E8F0FE" }}
                     placeholder="Reason for deducting tokens..."
                   />
                 </div>
                 <div>
-                  <label className="flex items-center gap-2 text-sm text-zinc-300">
+                  <label className="flex items-center gap-2 text-xs text-zinc-400">
                     <input
                       type="checkbox"
                       checked={sendDeductNotification}
@@ -592,7 +592,7 @@ export default function AdminUserEditPage() {
                 <div>
                   <button
                     onClick={handleDeductTokens}
-                    className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                    className="px-6 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
                   >
                     Deduct FUN
                   </button>
@@ -606,13 +606,13 @@ export default function AdminUserEditPage() {
         return (
           <div>
             {transactionsLoading ? (
-              <div className="text-center text-zinc-400 py-8">Loading transactions...</div>
+              <div className="text-center text-sm text-zinc-400 py-8">Loading transactions...</div>
             ) : transactions.length === 0 ? (
-              <div className="text-center text-zinc-400 py-8">No transactions found</div>
+              <div className="text-center text-sm text-zinc-400 py-8">No transactions found</div>
             ) : (
               <div className="bg-zinc-800 rounded-md overflow-hidden">
                 <table className="w-full">
-                  <thead className="bg-zinc-700">
+                  <thead style={{ backgroundColor: "#0F212E" }}>
                     <tr>
                       <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">Type</th>
                       <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">Game</th>
@@ -670,7 +670,7 @@ export default function AdminUserEditPage() {
   if (loading) {
     return (
       <section className="py-12 overflow-visible">
-        <div className="text-center text-zinc-400 py-8">Loading user...</div>
+        <div className="text-center text-sm text-zinc-400 py-8">Loading user...</div>
       </section>
     );
   }
@@ -689,12 +689,12 @@ export default function AdminUserEditPage() {
           <div className="mb-4 pb-4 border-b border-zinc-800">
             <button
               onClick={() => router.push("/admin/users")}
-              className="text-sm text-zinc-400 hover:text-white"
+              className="text-xs text-zinc-400 hover:text-white"
             >
               ← Back to Users
             </button>
             <h2 className="text-lg font-semibold text-white mt-2">{user.username}</h2>
-            <p className="text-xs text-zinc-500">{user.email || "No email"}</p>
+            <p className="text-xs text-zinc-400">{user.email || "No email"}</p>
           </div>
           {tabs.map((tab) => {
             const Icon = tab.icon;

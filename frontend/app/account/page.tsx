@@ -46,6 +46,9 @@ export default function AccountPage() {
   const [activeTab, setActiveTab] = useState<TabType>("profile");
   const [notifications, setNotifications] = useState<any[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [selectedGameFilter, setSelectedGameFilter] = useState<string>("ALL");
 
   // Check URL parameter for tab
   useEffect(() => {
@@ -54,6 +57,13 @@ export default function AccountPage() {
       setActiveTab(tabParam as TabType);
     }
   }, [searchParams]);
+
+  // Reset game filter when switching away from transactions tab
+  useEffect(() => {
+    if (activeTab !== "transactions") {
+      setSelectedGameFilter("ALL");
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     fetchLevelAndBalance();
@@ -92,6 +102,50 @@ export default function AccountPage() {
 
     fetchUserData();
   }, [fetchLevelAndBalance, router]);
+
+  // Fetch transactions when transactions tab is active
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      if (activeTab !== "transactions") return;
+      
+      setTransactionsLoading(true);
+      try {
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+        const token = localStorage.getItem("auth_token");
+        
+        if (!token) {
+          console.error("No auth token found");
+          setTransactionsLoading(false);
+          return;
+        }
+
+        const res = await fetch(`${API_BASE}/me/transactions?limit=100`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          console.error("Failed to fetch transactions:", res.status, errorData);
+          setTransactions([]);
+          setTransactionsLoading(false);
+          return;
+        }
+
+        const data = await res.json();
+        console.log("Transactions loaded:", data);
+        setTransactions(data.transactions || []);
+      } catch (error) {
+        console.error("Failed to fetch transactions:", error);
+        setTransactions([]);
+      } finally {
+        setTransactionsLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, [activeTab]);
 
   // Fetch notifications when notifications tab is active
   useEffect(() => {
@@ -288,10 +342,112 @@ export default function AccountPage() {
           </div>
         );
       case "transactions":
+        // Get unique game types from transactions
+        const gameTypes = Array.from(
+          new Set(
+            transactions
+              .map(tx => tx.gameType)
+              .filter(gt => gt !== null && gt !== undefined && gt !== "")
+          )
+        ).sort() as string[];
+
+        // Filter transactions based on selected game filter
+        const filteredTransactions = selectedGameFilter === "ALL"
+          ? transactions
+          : transactions.filter(tx => tx.gameType === selectedGameFilter);
+
+        // Create filter tabs: ALL + game types
+        const filterTabs = ["ALL", ...gameTypes];
+
         return (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <h2 className="text-lg font-semibold text-white">Fun Transactions</h2>
-            <p className="text-sm text-zinc-400">Transaction history will be displayed here.</p>
+            
+            {/* Debug info - remove in production */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="text-xs text-zinc-500">
+                Total: {transactions.length} | Filtered: {filteredTransactions.length} | Filter: {selectedGameFilter}
+              </div>
+            )}
+            
+            {/* Game Filter Tabs */}
+            {transactions.length > 0 && (
+              <div className="flex gap-2 flex-wrap">
+                {filterTabs.map((gameType) => (
+                  <button
+                    key={gameType}
+                    onClick={() => setSelectedGameFilter(gameType)}
+                    className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      selectedGameFilter === gameType
+                        ? "bg-accent text-black"
+                        : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                    }`}
+                  >
+                    {gameType}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Transactions Table */}
+            {transactionsLoading ? (
+              <div className="text-center text-sm text-zinc-400 py-8">Loading transactions...</div>
+            ) : filteredTransactions.length === 0 ? (
+              <div className="text-center text-sm text-zinc-400 py-8">
+                {transactions.length === 0 
+                  ? "No transactions found" 
+                  : `No transactions found for ${selectedGameFilter}`}
+              </div>
+            ) : (
+              <div className="bg-zinc-800 rounded-md overflow-hidden">
+                <table className="w-full">
+                  <thead style={{ backgroundColor: "#0F212E" }}>
+                    <tr>
+                      <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">Type</th>
+                      <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">Game</th>
+                      <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">Amount</th>
+                      <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">Before</th>
+                      <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">After</th>
+                      <th className="px-2 py-2 text-left text-xs font-semibold text-zinc-300 whitespace-nowrap">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTransactions.map((tx, index) => {
+                      const date = new Date(tx.createdAt);
+                      const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                      const timeStr = date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+                      return (
+                        <tr 
+                          key={tx.id} 
+                          className={`whitespace-nowrap ${
+                            index % 2 === 0 ? "bg-[#142633]" : "bg-[#0F212E]"
+                          }`}
+                        >
+                          <td className="px-2 py-2 text-white text-xs">{tx.type}</td>
+                          <td className="px-2 py-2 text-zinc-400 text-xs">
+                            {tx.gameType || "-"}
+                          </td>
+                          <td className={`px-2 py-2 text-xs font-semibold ${
+                            parseFloat(tx.amount) >= 0 ? "text-green-400" : "text-red-400"
+                          }`}>
+                            {parseFloat(tx.amount) >= 0 ? "+" : ""}{parseFloat(tx.amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN
+                          </td>
+                          <td className="px-2 py-2 text-zinc-400 text-xs">
+                            {parseFloat(tx.balanceBefore).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN
+                          </td>
+                          <td className="px-2 py-2 text-zinc-400 text-xs">
+                            {parseFloat(tx.balanceAfter).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN
+                          </td>
+                          <td className="px-2 py-2 text-zinc-400 text-xs">
+                            {dateStr} {timeStr}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         );
       case "levels":

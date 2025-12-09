@@ -81,27 +81,27 @@ export default function AdminDashboard() {
     <section className="py-12 overflow-visible">
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
-          <p className="text-zinc-400">Manage users, races, and platform settings</p>
+          <h1 className="text-lg font-semibold text-white mb-2">Admin Dashboard</h1>
+          <p className="text-sm text-zinc-400">Manage users, races, and platform settings</p>
         </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-card/80 rounded-md p-6">
-          <div className="text-sm text-zinc-400 mb-1">Total Users</div>
-          <div className="text-3xl font-bold text-white">{stats?.totalUsers || 0}</div>
+          <div className="text-xs text-zinc-400 mb-1">Total Users</div>
+          <div className="text-sm font-medium text-white">{stats?.totalUsers || 0}</div>
         </div>
         <div className="bg-card/80 rounded-md p-6">
-          <div className="text-sm text-zinc-400 mb-1">Active Users</div>
-          <div className="text-3xl font-bold text-green-400">{stats?.activeUsers || 0}</div>
+          <div className="text-xs text-zinc-400 mb-1">Active Users</div>
+          <div className="text-sm font-medium text-green-400">{stats?.activeUsers || 0}</div>
         </div>
         <div className="bg-card/80 rounded-md p-6">
-          <div className="text-sm text-zinc-400 mb-1">Banned Users</div>
-          <div className="text-3xl font-bold text-red-400">{stats?.bannedUsers || 0}</div>
+          <div className="text-xs text-zinc-400 mb-1">Banned Users</div>
+          <div className="text-sm font-medium text-red-400">{stats?.bannedUsers || 0}</div>
         </div>
         <div className="bg-card/80 rounded-md p-6">
-          <div className="text-sm text-zinc-400 mb-1">Total Balance</div>
-          <div className="text-3xl font-bold text-accent">{parseFloat(stats?.totalBalance || "0").toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN</div>
+          <div className="text-xs text-zinc-400 mb-1">Total Balance</div>
+          <div className="text-sm font-semibold text-accent">{parseFloat(stats?.totalBalance || "0").toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} FUN</div>
         </div>
       </div>
 
@@ -111,21 +111,21 @@ export default function AdminDashboard() {
           href="/admin/users"
           className="bg-card/80 rounded-md p-6 transition-colors"
         >
-          <h3 className="text-xl font-semibold text-white mb-2">👥 User Management</h3>
+          <h3 className="text-lg font-semibold text-white mb-2">👥 User Management</h3>
           <p className="text-sm text-zinc-400">Manage users, ban/unban, give tokens</p>
         </Link>
         <Link
           href="/admin/races"
           className="bg-card/80 rounded-md p-6 transition-colors"
         >
-          <h3 className="text-xl font-semibold text-white mb-2">🏁 Race Management</h3>
+          <h3 className="text-lg font-semibold text-white mb-2">🏁 Race Management</h3>
           <p className="text-sm text-zinc-400">Create, activate, and manage races</p>
         </Link>
         <Link
           href="/admin/config"
           className="bg-card/80 rounded-md p-6 transition-colors"
         >
-          <h3 className="text-xl font-semibold text-white mb-2">⚙️ Configuration</h3>
+          <h3 className="text-lg font-semibold text-white mb-2">⚙️ Configuration</h3>
           <p className="text-sm text-zinc-400">Configure XP, rewards, and settings</p>
         </Link>
       </div>
