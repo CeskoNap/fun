@@ -117,7 +117,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-background shadow-xl border-0 pl-[60px]">
-      <div className="max-w-6xl mx-auto px-4 py-1.5 flex items-center justify-between gap-4">
+      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
               <Link href="/" className="flex items-center gap-3">
                 <span className="text-5xl font-cream-cake text-white tracking-wide font-normal hover:text-accent transition-colors cursor-pointer" style={{ letterSpacing: '0.05em' }}>
                   Fun

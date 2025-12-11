@@ -11,6 +11,7 @@ import { MissionsService } from '../missions/missions.service';
 import { AchievementsService } from '../achievements/achievements.service';
 import { resolveMinesBet, MinesParams, MinesGameData, generateMinesPositions, calculateMinesMultiplier } from '../games/mines.engine';
 import { resolvePlinkoBet, PlinkoParams, PlinkoGameData } from '../games/plinko.engine';
+import { resolveDiceBet, DiceParams, DiceGameData } from '../games/dice.engine';
 import { toCentesimi, fromCentesimi } from '../common/utils/balance.util';
 
 @Injectable()
@@ -267,6 +268,41 @@ export class BetsService {
       const payoutDecimal = amountDecimal * multiplier;
       const payout = toCentesimi(payoutDecimal);
       const status = multiplier > 0 ? BetStatus.WON : BetStatus.LOST;
+
+      return {
+        status,
+        multiplier,
+        payout,
+        gameData: result,
+      };
+    }
+
+    if (gameType === GameType.DICE) {
+      const target = params?.target ?? 50;
+      if (target < 1 || target > 100) {
+        throw new BadRequestException('Target must be between 1 and 100');
+      }
+      const direction: 'over' | 'under' = params?.direction ?? 'over';
+      if (!['over', 'under'].includes(direction)) {
+        throw new BadRequestException('Direction must be "over" or "under"');
+      }
+
+      // Convert amount from centesimi to decimal for game engine
+      const amountDecimal = fromCentesimi(amount);
+      
+      const result: DiceGameData = resolveDiceBet(
+        amountDecimal,
+        serverSeed,
+        clientSeed,
+        nonce,
+        { target, direction } as DiceParams,
+      );
+
+      const multiplier = result.finalMultiplier;
+      // Calculate payout in decimal, then convert to centesimi
+      const payoutDecimal = amountDecimal * multiplier;
+      const payout = toCentesimi(payoutDecimal);
+      const status = result.won ? BetStatus.WON : BetStatus.LOST;
 
       return {
         status,

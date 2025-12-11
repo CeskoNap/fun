@@ -275,12 +275,12 @@ export function HomeStatsSection() {
   return (
     <div className="mb-0 flex flex-col lg:flex-row gap-4 items-stretch p-2 md:p-0">
       {/* Left Panel - RTP Live */}
-      <div className="w-full lg:w-[70%] h-full min-h-[270px] max-h-[270px] border border-card/50 rounded-md shadow-md overflow-hidden relative flex flex-col" style={{ backgroundColor: '#0F212E' }}>
-        <div className="md:p-2 pb-0 md:p-4 flex flex-col h-full min-h-[270px] max-h-[270px] relative z-10">
+      <div className="w-full lg:w-[70%] h-full min-h-[320px] max-h-[320px] border border-card/50 rounded-md shadow-md overflow-hidden relative flex flex-col" style={{ backgroundColor: '#0F212E' }}>
+        <div className="md:p-2 pb-0 md:p-4 flex flex-col h-full min-h-[320px] max-h-[320px] relative z-10 justify-between">
           <div className="flex p-3 md:p-2 flex-col md:flex-row md:items-center justify-between gap-6 p-2">
             <div>
               <div className="flex flex-wrap">
-                <div className="text-center sm:text-2xl tracking-tighter pr-2 capitalize text-lg md:text-xl font-bold text-white justify-left">
+                <div className="text-center sm:text-2xl tracking-tighter pr-2 capitalize text-lg md:text-xl font-semibold text-white justify-left">
                   Fun Original Game
                 </div>
               </div>
@@ -291,10 +291,10 @@ export function HomeStatsSection() {
           </div>
 
           <div className="grid grid-row w-full">
-            <div className="min-h-[128px]">
+            <div className="min-h-[160px] flex flex-col justify-between">
               <div className="relative">
                 {loading ? (
-                  <div className="text-card-foreground rounded-lg border-card-border border-0 bg-transparent shadow-none overflow-hidden h-full lg:h-[124px]">
+                  <div className="text-card-foreground rounded-lg border-card-border border-0 bg-transparent shadow-none overflow-hidden h-full lg:h-[156px]">
                     <div className="p-3 px-1 md:p-0 md:pt-3 pb-0 md:pb-0 flex flex-col h-full">
                       <div className="flex items-center justify-between mb-2 p-2 animate-pulse">
                         <div className="flex items-center gap-2">
@@ -313,7 +313,7 @@ export function HomeStatsSection() {
                           </div>
                         </div>
                       </div>
-                      <div className="h-16 md:h-[6.3rem] mt-0 md:mt-auto bg-transparent rounded-md animate-pulse -mx-2 md:-mx-5 -mb-1"></div>
+                      <div className="h-20 md:h-[7.5rem] mt-0 md:mt-auto bg-transparent rounded-md animate-pulse -mx-2 md:-mx-5 -mb-1"></div>
                     </div>
                   </div>
                 ) : (
@@ -355,7 +355,7 @@ export function HomeStatsSection() {
                           </div>
                         </div>
                       </div>
-                      <div className="h-16 md:h-[6.3rem] mt-0 bg-none rounded-md p-0 relative -mx-2 md:-mx-5 -mb-1">
+                      <div className="h-20 md:h-[7.5rem] mt-0 bg-none rounded-md p-0 relative -mx-2 md:-mx-5 -mb-1">
                         <canvas
                           ref={canvasRef}
                           className="transition-opacity duration-500 opacity-100"
@@ -372,9 +372,9 @@ export function HomeStatsSection() {
       </div>
 
       {/* Right Panel - Races */}
-      <div className="overflow-hidden rounded-md border border-card/50 shadow-lg h-full min-h-[270px] max-h-[270px] w-full lg:w-[30%] relative z-[1] flex flex-col" style={{ backgroundColor: '#0F212E' }}>
+      <div className="overflow-hidden rounded-md border border-card/50 shadow-lg h-full min-h-[320px] max-h-[320px] w-full lg:w-[30%] relative z-[1] flex flex-col" style={{ backgroundColor: '#0F212E' }}>
           {raceData ? (
-            <div className="p-4 relative md:z-10 h-full min-h-[270px] max-h-[270px] flex flex-col">
+            <div className="p-4 relative md:z-10 h-full min-h-[320px] max-h-[320px] flex flex-col justify-between">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="relative">

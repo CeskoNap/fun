@@ -202,7 +202,7 @@ export function Sidebar() {
       {/* Toggle Button */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="w-full h-[60px] flex items-center justify-center bg-background/50 hover:bg-background/60 transition-colors border-b border-card/30"
+        className="w-full h-14 flex items-center justify-center bg-background/50 hover:bg-background/60 transition-colors border-b border-card/30"
         aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         {isCollapsed ? (

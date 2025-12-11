@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { useStore } from "../src/store/useStore";
 import { useUserSocket } from "../src/hooks/useUserSocket";
 import { useI18n } from "../src/i18n/useI18n";
@@ -15,6 +16,7 @@ export default function HomePage() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [gameSearch, setGameSearch] = useState("");
 
   useEffect(() => {
     fetchLevelAndBalance();
@@ -50,15 +52,91 @@ export default function HomePage() {
       available: true,
     },
     {
-      id: "coming-soon",
-      title: t("home.comingSoon"),
-      description: t("home.moreGamesComing"),
+      id: "blackjack",
+      title: "BlackJack",
+      description: "Classic 21 experience",
       href: "#",
-      icon: "🚀",
-      color: "from-zinc-600 to-zinc-700",
+      image: "https://bc.imgix.net/game/image/c8464e0852.png?_v=4&auto=format&dpr=1&w=200",
+      color: "from-emerald-500 to-green-600",
+      available: false,
+    },
+    {
+      id: "coinflip",
+      title: "CoinFlip",
+      description: "Testa o croce immediato",
+      href: "#",
+      image: "https://bc.imgix.net/game/image/7be7686a74.png?_v=4&auto=format&dpr=1&w=200",
+      color: "from-amber-400 to-orange-500",
+      available: false,
+    },
+    {
+      id: "roulette",
+      title: "Roulette",
+      description: "Rosso/Nero, numeri e puntate",
+      href: "#",
+      image: "https://bc.imgix.net/game/image/79d881f1de.png?_v=4&auto=format&dpr=1&w=200",
+      color: "from-red-500 to-rose-600",
+      available: false,
+    },
+    {
+      id: "hilo",
+      title: "HiLo",
+      description: "Carta più alta o più bassa",
+      href: "#",
+      image: "https://bc.imgix.net/game/image/b642563645.png?_v=4&auto=format&dpr=1&w=200",
+      color: "from-sky-500 to-cyan-500",
+      available: false,
+    },
+    {
+      id: "dice",
+      title: "Dice",
+      description: "Lancia i dadi e scegli il rischio",
+      href: "#",
+      image: "https://bc.imgix.net/game/image/f0448b14ec.png?_v=4&auto=format&dpr=1&w=200",
+      color: "from-indigo-500 to-blue-600",
+      available: false,
+    },
+    {
+      id: "crash",
+      title: "Crash",
+      description: "Esci prima che il moltiplicatore esploda",
+      href: "#",
+      image: "https://bc.imgix.net/game/image/a016f83c71.png?_v=4&auto=format&dpr=1&w=200",
+      color: "from-orange-500 to-red-500",
+      available: false,
+    },
+    {
+      id: "wheel",
+      title: "Wheel",
+      description: "Gira la ruota della fortuna",
+      href: "#",
+      image: "https://bc.imgix.net/game/image/84ab11ed13.png?_v=4&auto=format&dpr=1&w=200",
+      color: "from-fuchsia-500 to-purple-600",
+      available: false,
+    },
+    {
+      id: "limbo",
+      title: "Limbo",
+      description: "Scegli il target e punta al moltiplicatore",
+      href: "#",
+      image: "https://bc.imgix.net/game/image/a09aa93f72.png?_v=4&auto=format&dpr=1&w=200",
+      color: "from-teal-500 to-emerald-500",
+      available: false,
+    },
+    {
+      id: "mystery",
+      title: "",
+      description: "",
+      href: "#",
+      placeholder: true,
       available: false,
     },
   ];
+
+  const filteredGames = games.filter((game) => {
+    if (!gameSearch.trim()) return true;
+    return game.title.toLowerCase().includes(gameSearch.trim().toLowerCase());
+  });
 
   return (
     <div>
@@ -68,14 +146,27 @@ export default function HomePage() {
       </section>
 
       {/* Trending Games Section */}
-      <section className="py-12 overflow-visible">
-        <div className="flex items-center gap-2 mb-1">
-          <h2 className="text-base font-semibold text-white">{t("home.trendingGames")}</h2>
+      <section className="pt-0 pb-12 overflow-visible">
+        <div className="flex flex-col gap-3 mb-1">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-semibold text-white">{t("home.trendingGames")}</h2>
+          </div>
+          <div className="w-full relative">
+            <MagnifyingGlassIcon className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={gameSearch}
+              onChange={(e) => setGameSearch(e.target.value)}
+              placeholder="Search a Game..."
+              className="w-full pl-10 pr-3 py-2 rounded-md text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent"
+              style={{ backgroundColor: "#E8F0FE" }}
+            />
+          </div>
         </div>
 
-        {/* Horizontal Scrollable Cards */}
-        <div className="flex gap-4 overflow-x-auto overflow-y-visible pb-6 pt-4 scrollbar-hide" style={{ paddingTop: '1rem', paddingBottom: '2rem' }}>
-          {games.map((game) => (
+        {/* Grid Cards - 8 per row on large screens, wrap below */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4 pb-6 pt-4" style={{ paddingTop: '1rem', paddingBottom: '2rem' }}>
+          {filteredGames.map((game) => (
             <Link
               key={game.id}
               href={game.available ? game.href : "#"}
@@ -84,7 +175,7 @@ export default function HomePage() {
                   e.preventDefault();
                 }
               }}
-              className={`group relative flex-shrink-0 w-[140px] overflow-visible z-0 ${
+              className={`group relative w-full overflow-visible z-0 ${
                 !game.available ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
               }`}
               style={{ marginTop: '0', paddingTop: '0' }}
@@ -92,14 +183,14 @@ export default function HomePage() {
               {game.image && !imageErrors[game.id] ? (
                 <>
                   {/* Game Image with Gradient Background */}
-                  <div className="relative w-[140px] h-[184px] rounded-md overflow-visible">
+                  <div className="relative w-full h-[184px] rounded-md overflow-visible">
                     <div className={`relative rounded-md transition-all duration-200 ${
                       !game.available 
                         ? "" 
                         : "group-hover:-translate-y-2 group-hover:shadow-2xl"
                     }`}
                     style={{
-                      width: '140px',
+                      width: '100%',
                       height: '184px',
                       zIndex: 10
                     }}>
@@ -132,16 +223,23 @@ export default function HomePage() {
                 </>
               ) : (
                 <>
-                  {/* Placeholder Card (for failed images or coming soon) */}
-                  <div className={`relative w-[140px] h-[184px] bg-card rounded-md flex flex-col items-center justify-center ${
-                    !game.available ? "" : "group-hover:-translate-y-2 group-hover:shadow-2xl transition-transform duration-200"
-                  }`}
-                  style={{ zIndex: 10 }}
+                  {/* Placeholder Card (fallback or blurred placeholder) */}
+                  <div
+                    className={`relative w-full h-[184px] rounded-md flex flex-col items-center justify-center ${
+                      game.placeholder
+                        ? "bg-gradient-to-br from-purple-500/60 via-cyan-400/50 to-amber-400/60 blur-sm"
+                        : "bg-card"
+                    } ${!game.available ? "" : "group-hover:-translate-y-2 group-hover:shadow-2xl transition-transform duration-200"}`}
+                    style={{ zIndex: 10 }}
                   >
-                    <div className="text-4xl mb-3">{game.icon || "🎮"}</div>
-                    <h3 className="text-sm font-medium text-zinc-400 text-center px-2">
-                      {game.title}
-                    </h3>
+                    {!game.placeholder && (
+                      <>
+                        <div className="text-4xl mb-3">{game.icon || "🎮"}</div>
+                        <h3 className="text-sm font-medium text-zinc-400 text-center px-2">
+                          {game.title}
+                        </h3>
+                      </>
+                    )}
                   </div>
                 </>
               )}
