@@ -175,6 +175,37 @@ export class BetsService {
     });
     this.websocketGateway.emitBalanceUpdate(userId, fromCentesimi(finalBalance).toFixed(2));
 
+    // Emit global big win event if multiplier >= 5x
+    const multiplierNum = typeof multiplier === 'number' ? multiplier : Number(multiplier);
+    console.log(`[Big Win Check] Status: ${status}, Multiplier: ${multiplier} (type: ${typeof multiplier}), MultiplierNum: ${multiplierNum}, Is >= 5: ${multiplierNum >= 5}`);
+    
+    if (status === 'WON' && multiplierNum >= 5) {
+      console.log(`[Big Win] Condition met! Fetching user data for userId: ${userId}`);
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { username: true, displayName: true },
+      });
+      
+      console.log(`[Big Win] User found:`, user);
+      
+      if (user) {
+        const bigWinData = {
+          betId: bet.id,
+          gameType,
+          userId,
+          username: user.displayName || user.username,
+          multiplier: multiplierNum,
+          payout: fromCentesimi(payout).toFixed(2),
+        };
+        console.log(`[Big Win] Emitting big-win:public event:`, bigWinData);
+        this.websocketGateway.emitBigWin(bigWinData);
+      } else {
+        console.log(`[Big Win] User not found for userId: ${userId}`);
+      }
+    } else {
+      console.log(`[Big Win] Condition not met - Status: ${status}, MultiplierNum: ${multiplierNum}, >= 5: ${multiplierNum >= 5}`);
+    }
+
     return {
       betId: bet.id,
       gameType,
@@ -678,6 +709,37 @@ export class BetsService {
       gameData: updatedGameData,
     });
     this.websocketGateway.emitBalanceUpdate(userId, fromCentesimi(creditResult.balanceAfter).toFixed(2));
+
+    // Emit global big win event if multiplier >= 5x
+    const multiplierNum = typeof multiplier === 'number' ? multiplier : Number(multiplier);
+    console.log(`[Cash Out Big Win Check] Status: WON, Multiplier: ${multiplier} (type: ${typeof multiplier}), MultiplierNum: ${multiplierNum}, Is >= 5: ${multiplierNum >= 5}`);
+    
+    if (multiplierNum >= 5) {
+      console.log(`[Cash Out Big Win] Condition met! Fetching user data for userId: ${userId}`);
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { username: true, displayName: true },
+      });
+      
+      console.log(`[Cash Out Big Win] User found:`, user);
+      
+      if (user) {
+        const bigWinData = {
+          betId: bet.id,
+          gameType: GameType.MINES,
+          userId,
+          username: user.displayName || user.username,
+          multiplier: multiplierNum,
+          payout: fromCentesimi(payout).toFixed(2),
+        };
+        console.log(`[Cash Out Big Win] Emitting big-win:public event:`, bigWinData);
+        this.websocketGateway.emitBigWin(bigWinData);
+      } else {
+        console.log(`[Cash Out Big Win] User not found for userId: ${userId}`);
+      }
+    } else {
+      console.log(`[Cash Out Big Win] Condition not met - MultiplierNum: ${multiplierNum}, >= 5: ${multiplierNum >= 5}`);
+    }
 
     return {
       betId: bet.id,

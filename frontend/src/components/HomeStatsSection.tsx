@@ -323,11 +323,11 @@ export function HomeStatsSection() {
                         <div className="flex items-center gap-2">
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <h3 className="text-[10px] md:text-xs font-medium text-zinc-400">RTP Live (24H)</h3>
                               <div className="inline-flex h-1.5 w-1.5">
                                 <span className="animate-ping absolute inline-flex h-1.5 w-1.5 rounded-full bg-green-500 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
                               </div>
+                              <h3 className="text-[10px] md:text-xs font-medium text-zinc-400">RTP Live</h3>
                             </div>
                             <div className="flex items-center gap-2">
                               <div className="text-sm md:text-base font-bold text-green-500">

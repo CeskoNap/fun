@@ -8,6 +8,7 @@ import { useUserSocket } from "../src/hooks/useUserSocket";
 import { useI18n } from "../src/i18n/useI18n";
 import { AuthModal } from "../src/components/AuthModal";
 import { HomeStatsSection } from "../src/components/HomeStatsSection";
+import { LuckyWinsSection } from "../src/components/LuckyWinsSection";
 
 export default function HomePage() {
   const { t } = useI18n();
@@ -145,11 +146,14 @@ export default function HomePage() {
         <HomeStatsSection />
       </section>
 
-      {/* Trending Games Section */}
-      <section className="pt-0 pb-12 overflow-visible">
+      {/* Lucky Wins Section */}
+      <LuckyWinsSection />
+
+      {/* Original Games Section */}
+      <section className="pt-5 pb-12 overflow-visible">
         <div className="flex flex-col gap-3 mb-1">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold text-white">{t("home.trendingGames")}</h2>
+            <h2 className="text-xl font-semibold text-white">Original Games</h2>
           </div>
           <div className="w-full relative">
             <MagnifyingGlassIcon className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -230,14 +234,14 @@ export default function HomePage() {
                         ? "bg-gradient-to-br from-purple-500/60 via-cyan-400/50 to-amber-400/60 blur-sm"
                         : "bg-card"
                     } ${!game.available ? "" : "group-hover:-translate-y-2 group-hover:shadow-2xl transition-transform duration-200"}`}
-                    style={{ zIndex: 10 }}
+                  style={{ zIndex: 10 }}
                   >
                     {!game.placeholder && (
                       <>
-                        <div className="text-4xl mb-3">{game.icon || "🎮"}</div>
-                        <h3 className="text-sm font-medium text-zinc-400 text-center px-2">
-                          {game.title}
-                        </h3>
+                    <div className="text-4xl mb-3">{game.icon || "🎮"}</div>
+                    <h3 className="text-sm font-medium text-zinc-400 text-center px-2">
+                      {game.title}
+                    </h3>
                       </>
                     )}
                   </div>

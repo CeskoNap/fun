@@ -106,5 +106,20 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
   emitToAll(event: string, data: any) {
     this.server.emit(event, data);
   }
+
+  /**
+   * Emit big win to all connected clients
+   */
+  emitBigWin(data: {
+    betId: string;
+    gameType: string;
+    userId: string;
+    username: string;
+    multiplier: number;
+    payout: string;
+  }) {
+    console.log(`[WebSocket Gateway] Emitting big-win:public to all clients:`, data);
+    this.emitToAll('big-win:public', data);
+  }
 }
 

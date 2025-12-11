@@ -75,6 +75,7 @@ export class GamesService {
 
     return bigWins.map((bet, index) => ({
       rank: index + 1,
+      betId: bet.id,
       userId: bet.user.id,
       username: bet.user.displayName || bet.user.username,
       date: bet.resolvedAt || bet.createdAt,
