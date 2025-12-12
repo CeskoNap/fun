@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { useStore } from "../../../src/store/useStore";
 import { apiClient, ApiError } from "../../../src/lib/apiClient";
 import { 
@@ -21,6 +22,7 @@ interface Tile {
 }
 
 export default function MinesPage() {
+  const pathname = usePathname();
   const { balance, setBalance, fetchLevelAndBalance } = useStore();
   
   // Game state
@@ -45,6 +47,13 @@ export default function MinesPage() {
     payout: number;
     status: string;
   }>>([]);
+  
+  // Ref to prevent duplicate termination calls
+  const terminationInProgress = useRef<boolean>(false);
+  // Ref to track if we have an active game
+  const activeBetIdRef = useRef<string | null>(null);
+  // Ref to track gems revealed for termination on page unload
+  const gemsRevealedRef = useRef<number>(0);
 
   const GRID_SIZE = 25; // 5x5 grid
   const ROWS = 5;
@@ -64,6 +73,11 @@ export default function MinesPage() {
 
   // Handle bet placement
   const handleBet = async () => {
+    // Prevent multiple bets if game is already active
+    if (isGameActive || loading) {
+      return;
+    }
+
     const amount = parseFloat(betAmount) || 0;
     if (amount <= 0 || amount > balance) {
       setError("Invalid bet amount");
@@ -100,8 +114,11 @@ export default function MinesPage() {
       
       // Update state
       setBetId(response.betId);
+      activeBetIdRef.current = response.betId;
+      const initialGems = response.gameData.gemsRevealed || 0;
+      gemsRevealedRef.current = initialGems;
       setIsGameActive(true);
-      setGemsRevealed(response.gameData.gemsRevealed || 0);
+      setGemsRevealed(initialGems);
       setCurrentMultiplier(1.0);
       setCanCashOut(false);
       setGameEnded(false);
@@ -167,6 +184,8 @@ export default function MinesPage() {
         setGameEnded(true);
         setHasWon(false);
         setCanCashOut(false);
+        activeBetIdRef.current = null;
+        gemsRevealedRef.current = 0;
       }
       setTiles(updatedTiles);
 
@@ -176,11 +195,15 @@ export default function MinesPage() {
         setGameEnded(true);
         setHasWon(false);
         setCanCashOut(false);
+        activeBetIdRef.current = null;
+        gemsRevealedRef.current = 0;
         await fetchLevelAndBalance();
         await loadRecentBets();
       } else {
         // Update state from backend
-        setGemsRevealed(response.gemsRevealed || 0);
+        const newGems = response.gemsRevealed || 0;
+        gemsRevealedRef.current = newGems;
+        setGemsRevealed(newGems);
         setCurrentMultiplier(response.currentMultiplier || 1.0);
         setCanCashOut(true);
       }
@@ -238,6 +261,8 @@ export default function MinesPage() {
       setGameEnded(true);
       setHasWon(true);
       setCanCashOut(false);
+      activeBetIdRef.current = null;
+      gemsRevealedRef.current = 0;
 
       await fetchLevelAndBalance();
       await loadRecentBets();
@@ -299,10 +324,272 @@ export default function MinesPage() {
     handleTileClick(selectedTile.index);
   };
 
+  // Terminate active game (refund or cash out) - synchronous version for page unload
+  const terminateActiveGameSync = (betIdToTerminate: string, gemsRevealedCount: number) => {
+    if (terminationInProgress.current) {
+      return;
+    }
+
+    terminationInProgress.current = true;
+    activeBetIdRef.current = null;
+
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+    const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+    const userId = typeof window !== "undefined" ? localStorage.getItem("user_id") : null;
+
+    const endpoint = gemsRevealedCount === 0 ? "/bets/mines/refund" : "/bets/mines/cash-out";
+    const url = `${API_BASE}${endpoint}`;
+    const data = JSON.stringify({ betId: betIdToTerminate });
+
+    // Try multiple methods for maximum reliability
+    try {
+      // Method 1: Use XMLHttpRequest synchronous (works even when page is closing)
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", url, false); // false = synchronous
+      if (userId) xhr.setRequestHeader("X-User-Id", userId);
+      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.send(data);
+    } catch (e) {
+      // Method 2: Fallback to fetch with keepalive
+      try {
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (userId) headers["X-User-Id"] = userId;
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        
+        fetch(url, {
+          method: "POST",
+          headers,
+          body: data,
+          keepalive: true,
+        }).catch(() => {});
+      } catch (e2) {
+        // Method 3: Last resort - sendBeacon (but it doesn't support custom headers well)
+        if (navigator.sendBeacon) {
+          const blob = new Blob([data], { type: "application/json" });
+          navigator.sendBeacon(url, blob);
+        }
+      }
+    }
+  };
+
+  // Terminate active game (refund or cash out) - async version for normal use
+  const terminateActiveGame = async (betIdToTerminate: string, gemsRevealedCount: number) => {
+    // Prevent duplicate calls
+    if (terminationInProgress.current) {
+      return;
+    }
+
+    terminationInProgress.current = true;
+
+    try {
+      if (gemsRevealedCount === 0) {
+        // No tiles revealed - refund the bet
+        await apiClient.post("/bets/mines/refund", {
+          betId: betIdToTerminate,
+        });
+      } else {
+        // Some tiles revealed - cash out automatically
+        await apiClient.post("/bets/mines/cash-out", {
+          betId: betIdToTerminate,
+        });
+      }
+    } catch (e: any) {
+      // Ignore errors - game might already be terminated
+      console.log("Error terminating game:", e);
+    } finally {
+      terminationInProgress.current = false;
+      activeBetIdRef.current = null;
+    }
+  };
+
   useEffect(() => {
     fetchLevelAndBalance();
     loadRecentBets();
+    
+    // Check for active game and terminate it automatically
+    const handleActiveGame = async () => {
+      // Prevent duplicate calls
+      if (terminationInProgress.current) {
+        return;
+      }
+      
+      try {
+        const response = await apiClient.get<{
+          active?: boolean;
+          betId?: string;
+          gameType?: string;
+          status?: string;
+          amount?: string;
+          balance?: string;
+          gameData?: {
+            rows: number;
+            cols: number;
+            minesCount: number;
+            minePositions: number[];
+            revealedTiles: number[];
+            gemsRevealed: number;
+            currentMultiplier: number;
+            gameEnded: boolean;
+          };
+        }>("/bets/mines/active");
+
+        if (response && response.betId && response.gameData) {
+          const gameData = response.gameData;
+          const gemsRevealed = gameData.gemsRevealed || 0;
+          const gameEnded = gameData.gameEnded || false;
+          
+          // If game is already ended, just refresh the state
+          if (gameEnded) {
+            activeBetIdRef.current = null;
+            await fetchLevelAndBalance();
+            await loadRecentBets();
+            return;
+          }
+          
+          // Store betId for potential termination
+          activeBetIdRef.current = response.betId;
+          
+          // Terminate the game automatically
+          await terminateActiveGame(response.betId, gemsRevealed);
+          
+          // Update balance and recent bets
+          await fetchLevelAndBalance();
+          await loadRecentBets();
+        }
+      } catch (e: any) {
+        // No active game found - that's fine, just refresh state
+        console.log("No active game found:", e);
+        activeBetIdRef.current = null;
+        await fetchLevelAndBalance();
+        await loadRecentBets();
+      }
+    };
+
+    handleActiveGame();
   }, [fetchLevelAndBalance]);
+
+  // Terminate game when pathname changes (Next.js navigation)
+  useEffect(() => {
+    const currentBetId = activeBetIdRef.current;
+    const currentGemsRevealed = gemsRevealedRef.current;
+    
+    // If we're leaving the mines page and have an active game, terminate it immediately
+    if (pathname !== "/games/mines" && currentBetId) {
+      // Use sync version for immediate termination
+      terminateActiveGameSync(currentBetId, currentGemsRevealed);
+      
+      // Also try async version as backup
+      terminateActiveGame(currentBetId, currentGemsRevealed).catch(() => {
+        // Already handled by sync version
+      });
+    }
+  }, [pathname]);
+
+  // Terminate game when user leaves page or page becomes hidden
+  useEffect(() => {
+    let isUnloading = false;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const currentBetId = activeBetIdRef.current;
+      const currentGemsRevealed = gemsRevealedRef.current;
+      
+      if (currentBetId && !isUnloading) {
+        isUnloading = true;
+        // Terminate immediately using synchronous method
+        terminateActiveGameSync(currentBetId, currentGemsRevealed);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        const currentBetId = activeBetIdRef.current;
+        const currentGemsRevealed = gemsRevealedRef.current;
+        
+        if (currentBetId && !isUnloading) {
+          // Terminate game when page becomes hidden
+          terminateActiveGame(currentBetId, currentGemsRevealed);
+        }
+      }
+    };
+
+    // Handle browser back/forward
+    const handlePopState = () => {
+      const currentBetId = activeBetIdRef.current;
+      const currentGemsRevealed = gemsRevealedRef.current;
+      
+      if (currentBetId && !isUnloading) {
+        isUnloading = true;
+        // Terminate game when navigating away
+        terminateActiveGameSync(currentBetId, currentGemsRevealed);
+      }
+    };
+
+    // Also intercept link clicks that navigate away (including Next.js Link components)
+    // Use capture phase to intercept before Next.js handles it
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const link = target.closest("a");
+      
+      if (link) {
+        // Check if it's a Next.js Link or regular anchor
+        // Next.js Link components have href as attribute
+        const hrefAttr = link.getAttribute("href");
+        const hrefProp = link.href;
+        const href = hrefAttr || hrefProp;
+        
+        if (href && href !== "#" && !href.startsWith("javascript:")) {
+          let targetPath: string;
+          
+          // Handle Next.js Link (href is relative path like "/" or "/account")
+          if (href.startsWith("/")) {
+            targetPath = href.split("?")[0].split("#")[0]; // Remove query params and hash
+          } else if (href.startsWith("http")) {
+            // External link or full URL
+            try {
+              const url = new URL(href);
+              targetPath = url.pathname;
+            } catch {
+              return; // Invalid URL, ignore
+            }
+          } else {
+            return; // Not a navigation link (e.g., anchor, javascript:)
+          }
+          
+          const currentPath = window.location.pathname;
+          
+          // If clicking a link that goes to a different page (not mines page)
+          if (targetPath !== currentPath && targetPath !== "/games/mines") {
+            const currentBetId = activeBetIdRef.current;
+            const currentGemsRevealed = gemsRevealedRef.current;
+            
+            if (currentBetId && !isUnloading) {
+              isUnloading = true;
+              // Terminate immediately - don't wait, use sync method
+              terminateActiveGameSync(currentBetId, currentGemsRevealed);
+              
+              // Also try async as backup
+              terminateActiveGame(currentBetId, currentGemsRevealed).catch(() => {
+                // Already handled by sync version
+              });
+            }
+          }
+        }
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("popstate", handlePopState);
+    document.addEventListener("click", handleClick, true); // Use capture phase
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("popstate", handlePopState);
+      document.removeEventListener("click", handleClick, true);
+    };
+  }, []);
 
   const loadRecentBets = async () => {
     try {
@@ -443,7 +730,7 @@ export default function MinesPage() {
             {/* Bet / Cash Out Button */}
             <button
               onClick={isGameActive && canCashOut ? handleCashOut : handleBet}
-              disabled={loading || (!isGameActive && (betAmountNumber <= 0 || betAmountNumber > balance))}
+              disabled={loading || (isGameActive ? !canCashOut : (betAmountNumber <= 0 || betAmountNumber > balance))}
               className={`w-full py-2 px-4 rounded-md font-semibold text-xs transition-all ${
                 isGameActive && canCashOut
                   ? "bg-accent text-black hover:bg-accent/90"

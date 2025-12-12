@@ -2,25 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Prevent layout shift when vertical scrollbar appears */
-html {
-  /* Reserve space only on the scrollbar side to avoid pushing content left */
-  scrollbar-gutter: stable;
-  /* Global scale ~110% to match preferred zoom */
-  font-size: 110%;
-}
-
-body {
-  min-height: 100vh;
-  overflow-y: scroll;
-}
-
-/* Remove default yellow focus outline from inputs (e.g., search fields) */
-input:focus-visible {
-  outline: none;
-  box-shadow: none !important;
-}
-
 /* Hide scrollbar for Chrome, Safari and Opera */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;

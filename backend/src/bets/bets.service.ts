@@ -753,6 +753,147 @@ export class BetsService {
       gameData: updatedGameData,
     };
   }
+
+  // Refund active Mines bet (when no tiles revealed)
+  async refundMinesBet(userId: string, betId: string) {
+    // Use transaction to prevent race conditions
+    return await this.prisma.$transaction(async (tx) => {
+      const bet = await tx.bet.findUnique({
+        where: { id: betId },
+        include: { game: true },
+      });
+
+      if (!bet || bet.userId !== userId) {
+        throw new NotFoundException('Bet not found');
+      }
+
+      if (bet.game.type !== GameType.MINES) {
+        throw new BadRequestException('This endpoint is only for Mines games');
+      }
+
+      // Check status again within transaction to prevent race conditions
+      if (bet.status !== BetStatus.PENDING) {
+        throw new BadRequestException('Bet is not active');
+      }
+
+      const gameData = bet.gameData as any;
+      if (!gameData) {
+        throw new BadRequestException('Invalid game data');
+      }
+
+      // Only refund if no tiles have been revealed
+      if (gameData.gemsRevealed > 0) {
+        throw new BadRequestException('Cannot refund bet with revealed tiles. Use cash out instead.');
+      }
+
+      // Refund the bet amount
+      const refundResult = await updateUserBalance(
+        tx,
+        userId,
+        bet.amount as bigint,
+        TransactionType.REFUND,
+        { gameType: GameType.MINES, betId: bet.id },
+      );
+
+      const updatedGameData = {
+        ...gameData,
+        gameEnded: true,
+        refunded: true,
+      };
+
+      // Update bet to REFUNDED (this will fail if another transaction already updated it)
+      const updatedBet = await tx.bet.update({
+        where: { 
+          id: betId,
+          status: BetStatus.PENDING, // Additional check to prevent race condition
+        },
+        data: {
+          status: BetStatus.REFUNDED,
+          gameData: updatedGameData,
+          resolvedAt: new Date(),
+        },
+      });
+
+      return {
+        betId: bet.id,
+        status: BetStatus.REFUNDED,
+        refundedAmount: fromCentesimi(bet.amount as bigint).toFixed(2),
+        balance: fromCentesimi(refundResult.balanceAfter).toFixed(2),
+        gameData: updatedGameData,
+        refundResult,
+      };
+    }).then((result) => {
+      // Emit websocket events after transaction completes
+      this.websocketGateway.emitToUser(userId, 'bet:resolved', {
+        betId: result.betId,
+        gameType: GameType.MINES,
+        status: BetStatus.REFUNDED,
+        payout: result.refundedAmount,
+        multiplier: 0,
+        balance: result.balance,
+        gameData: result.gameData,
+      });
+      this.websocketGateway.emitBalanceUpdate(userId, result.balance);
+
+      return {
+        betId: result.betId,
+        status: result.status,
+        refundedAmount: result.refundedAmount,
+        balance: result.balance,
+        gameData: result.gameData,
+      };
+    });
+  }
+
+  // Get active Mines bet for user
+  async getActiveMinesBet(userId: string) {
+    const bet = await this.prisma.bet.findFirst({
+      where: {
+        userId,
+        status: BetStatus.PENDING,
+        game: {
+          type: GameType.MINES,
+        },
+      },
+      include: {
+        game: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (!bet) {
+      return null;
+    }
+
+    const gameData = bet.gameData as any;
+    if (!gameData) {
+      return null;
+    }
+
+    const balance = await this.prisma.userBalance.findUnique({
+      where: { userId },
+    });
+
+    return {
+      betId: bet.id,
+      gameType: GameType.MINES,
+      status: BetStatus.PENDING,
+      amount: fromCentesimi(bet.amount as bigint).toFixed(2),
+      balance: balance ? fromCentesimi(balance.balance as bigint).toFixed(2) : '0.00',
+      gameData: {
+        rows: gameData.rows,
+        cols: gameData.cols,
+        minesCount: gameData.minesCount,
+        minePositions: gameData.minePositions,
+        revealedTiles: gameData.revealedTiles || [],
+        gemsRevealed: gameData.gemsRevealed || 0,
+        currentMultiplier: gameData.currentMultiplier || 1.0,
+        gameEnded: gameData.gameEnded || false,
+      },
+    };
+  }
 }
 
 

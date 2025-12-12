@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards } from '@nestjs/common';
 import { BetsService } from './bets.service';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { CurrentUser } from '../common/decorators/user.decorator';
@@ -55,6 +55,22 @@ export class BetsController {
     @Body() dto: CashOutDto,
   ) {
     return this.betsService.cashOut(userId, dto.betId);
+  }
+
+  @Post('mines/refund')
+  async refundMinesBet(
+    @CurrentUser() userId: string,
+    @Body() dto: CashOutDto,
+  ) {
+    return this.betsService.refundMinesBet(userId, dto.betId);
+  }
+
+  @Get('mines/active')
+  async getActiveMinesBet(
+    @CurrentUser() userId: string,
+  ) {
+    const result = await this.betsService.getActiveMinesBet(userId);
+    return result || { active: false };
   }
 }
 
